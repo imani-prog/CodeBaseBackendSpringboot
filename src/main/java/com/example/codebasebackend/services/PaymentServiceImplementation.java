@@ -2,10 +2,12 @@ package com.example.codebasebackend.services;
 
 import com.example.codebasebackend.Entities.Billing;
 import com.example.codebasebackend.Entities.Payment;
+import com.example.codebasebackend.Entities.ServiceOrder;
 import com.example.codebasebackend.dto.PaymentRequest;
 import com.example.codebasebackend.dto.PaymentResponse;
 import com.example.codebasebackend.repositories.BillingRepository;
 import com.example.codebasebackend.repositories.PaymentRepository;
+import com.example.codebasebackend.repositories.ServiceOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class PaymentServiceImplementation implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final BillingRepository billingRepository;
+    private final ServiceOrderRepository serviceOrderRepository;
 
     @Override
     public PaymentResponse record(PaymentRequest request) {
@@ -55,6 +58,14 @@ public class PaymentServiceImplementation implements PaymentService {
                 b.setStatus(Billing.InvoiceStatus.PARTIALLY_PAID);
             }
             billingRepository.save(b);
+
+            // If the linked ServiceOrder exists and invoice is fully paid, mark order as PAID
+            if (b.getStatus() == Billing.InvoiceStatus.PAID) {
+                serviceOrderRepository.findByBillingId(b.getId()).ifPresent(order -> {
+                    order.setStatus(ServiceOrder.Status.PAID);
+                    serviceOrderRepository.save(order);
+                });
+            }
         }
         return toResponse(saved);
     }
@@ -93,4 +104,3 @@ public class PaymentServiceImplementation implements PaymentService {
 
     private BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
 }
-
