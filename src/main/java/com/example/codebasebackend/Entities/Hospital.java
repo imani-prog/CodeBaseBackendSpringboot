@@ -27,7 +27,8 @@ import java.util.Set;
                 @Index(name = "idx_hospital_name", columnList = "name"),
                 @Index(name = "idx_hospital_city", columnList = "city"),
                 @Index(name = "idx_hospital_email", columnList = "email"),
-                @Index(name = "idx_hospital_registration", columnList = "registrationNumber")
+                @Index(name = "idx_hospital_registration", columnList = "registrationNumber"),
+                @Index(name = "idx_hospital_code", columnList = "code")
         },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_hospital_registration", columnNames = {"registrationNumber"})
@@ -37,6 +38,9 @@ public class Hospital {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(length = 16, unique = true)
+    private String code; // HS001-style business id
 
     // Identity
     @NotBlank
@@ -161,7 +165,7 @@ public class Hospital {
         if (type == null) type = HospitalType.GENERAL;
     }
 
-    public enum HospitalType { GENERAL, CLINIC, SPECIALTY, TEACHING, REHABILITATION, EMERGENCY_CENTER }
+    public enum HospitalType { GENERAL, CLINIC, SPECIALTY, TEACHING, REHABILITATION, EMERGENCY_CENTER, REFERRAL, MISSION }
     public enum HospitalStatus { ACTIVE, INACTIVE, UNDER_MAINTENANCE, CLOSED }
 
     @Override

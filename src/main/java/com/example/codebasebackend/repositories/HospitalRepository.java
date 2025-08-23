@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface HospitalRepository extends JpaRepository<Hospital, Long> {
     Optional<Hospital> findByRegistrationNumber(String registrationNumber);
+    Optional<Hospital> findByCode(String code);
     List<Hospital> findByNameContainingIgnoreCase(String name);
     List<Hospital> findByCityIgnoreCase(String city);
     List<Hospital> findByStatus(Hospital.HospitalStatus status);
