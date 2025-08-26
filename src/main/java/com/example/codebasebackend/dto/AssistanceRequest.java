@@ -29,5 +29,13 @@ public class AssistanceRequest {
 
     // LOW, MEDIUM, HIGH, CRITICAL
     private String priority;
-}
 
+    private String dropoffAddressLine1;
+    private String dropoffAddressLine2;
+    private String dropoffCity;
+    private String dropoffState;
+    private String dropoffPostalCode;
+    private String dropoffCountry;
+    private BigDecimal dropoffLatitude;
+    private BigDecimal dropoffLongitude;
+}

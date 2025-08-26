@@ -127,10 +127,58 @@ public class AssistanceServiceImplementation implements AssistanceService {
         return response;
     }
 
+    @Override
+    public List<AssistanceResponse> getAllDispatches() {
+        return dispatchRepo.findAll().stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    public AssistanceResponse getDispatchById(Long id) {
+        AmbulanceDispatch dispatch = dispatchRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Dispatch not found"));
+        return mapToResponse(dispatch);
+    }
+
+    @Override
+    public AssistanceResponse updateDispatch(Long id, AssistanceRequest request) {
+        AmbulanceDispatch dispatch = dispatchRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Dispatch not found"));
+
+        // Update fields based on the request
+        dispatch.setDropoffAddressLine1(request.getDropoffAddressLine1());
+        dispatch.setDropoffCity(request.getDropoffCity());
+        dispatch.setDropoffLatitude(request.getDropoffLatitude());
+        dispatch.setDropoffLongitude(request.getDropoffLongitude());
+        // Add other fields as necessary
+
+        dispatchRepo.save(dispatch);
+        return mapToResponse(dispatch);
+    }
+
+    @Override
+    public void deleteDispatch(Long id) {
+        if (!dispatchRepo.existsById(id)) {
+            throw new ResponseStatusException(NOT_FOUND, "Dispatch not found");
+        }
+        dispatchRepo.deleteById(id);
+    }
+
+    private AssistanceResponse mapToResponse(AmbulanceDispatch dispatch) {
+        AssistanceResponse response = new AssistanceResponse();
+        response.setIncidentId(dispatch.getIncidentId());
+        response.setPatientId(dispatch.getPatient() != null ? dispatch.getPatient().getId() : null);
+        response.setHospitalId(dispatch.getHospital() != null ? dispatch.getHospital().getId() : null);
+        response.setPriority(dispatch.getPriority() != null ? dispatch.getPriority().name() : null);
+        response.setStatus(dispatch.getStatus().name());
+        response.setCreatedAt(dispatch.getRequestTime());
+        return response;
+    }
+
     private AmbulanceDispatch.DispatchPriority parsePriority(String s) {
         if (s == null) return AmbulanceDispatch.DispatchPriority.MEDIUM;
         try { return AmbulanceDispatch.DispatchPriority.valueOf(s.toUpperCase()); }
         catch (IllegalArgumentException ex) { return AmbulanceDispatch.DispatchPriority.MEDIUM; }
     }
 }
-

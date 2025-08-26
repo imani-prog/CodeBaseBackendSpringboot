@@ -126,6 +126,11 @@ public class AmbulanceDispatch {
     @JoinColumn(name = "patient_id")
     private Patient patient;
 
+    // Ambulance information
+    @ManyToOne
+    @JoinColumn(name = "ambulance_id", nullable = false)
+    private Ambulances ambulance;
+
     // Timings
     @Column(nullable = false)
     private OffsetDateTime requestTime; // when call/request received
