@@ -30,6 +30,9 @@ public class CommunityHealthWorkersServiceImplementation implements CommunityHea
     @Override
     public CommunityHealthWorkerResponse create(CommunityHealthWorkerRequest r) {
         CommunityHealthWorkers e = new CommunityHealthWorkers();
+        // Ensure server-managed identifiers
+        e.setId(null);
+        e.setCode(null);
         apply(e, r);
         if (r.getHospitalId() != null) {
             Hospital h = hospitalRepo.findById(r.getHospitalId()).orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Hospital not found"));
@@ -37,6 +40,10 @@ public class CommunityHealthWorkersServiceImplementation implements CommunityHea
         }
         if (e.getStatus() == null) e.setStatus(CommunityHealthWorkers.Status.AVAILABLE);
         CommunityHealthWorkers saved = chwRepo.save(e);
+        if (saved.getCode() == null) {
+            saved.setCode(String.format("CHW%03d", saved.getId()));
+            saved = chwRepo.save(saved);
+        }
         return toResponse(saved);
     }
 
@@ -95,6 +102,27 @@ public class CommunityHealthWorkersServiceImplementation implements CommunityHea
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "No available CHW with location"));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public CommunityHealthWorkerResponse findNearestAvailable(BigDecimal lat, BigDecimal lon, Long hospitalId, BigDecimal radiusKm) {
+        List<CommunityHealthWorkers> pool = hospitalId != null
+                ? chwRepo.findByStatusAndHospitalId(CommunityHealthWorkers.Status.AVAILABLE, hospitalId)
+                : chwRepo.findByStatus(CommunityHealthWorkers.Status.AVAILABLE);
+
+        CommunityHealthWorkers match = pool.stream()
+                .filter(c -> c.getLatitude() != null && c.getLongitude() != null)
+                .map(c -> new Object[]{c, distanceKm(lat.doubleValue(), lon.doubleValue(), c.getLatitude().doubleValue(), c.getLongitude().doubleValue())})
+                .filter(arr -> {
+                    double d = (double) arr[1];
+                    return radiusKm == null || d <= radiusKm.doubleValue();
+                })
+                .min(java.util.Comparator.comparingDouble(arr -> (double) arr[1]))
+                .map(arr -> (CommunityHealthWorkers) arr[0])
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "No available CHW within radius"));
+
+        return toResponse(match);
+    }
+
     private void apply(CommunityHealthWorkers e, CommunityHealthWorkerRequest r) {
         if (r.getFirstName() != null) e.setFirstName(r.getFirstName());
         if (r.getMiddleName() != null) e.setMiddleName(r.getMiddleName());
@@ -115,6 +143,7 @@ public class CommunityHealthWorkersServiceImplementation implements CommunityHea
     private CommunityHealthWorkerResponse toResponse(CommunityHealthWorkers e) {
         CommunityHealthWorkerResponse dto = new CommunityHealthWorkerResponse();
         dto.setId(e.getId());
+        dto.setCode(e.getCode());
         dto.setFirstName(e.getFirstName());
         dto.setMiddleName(e.getMiddleName());
         dto.setLastName(e.getLastName());
@@ -145,4 +174,3 @@ public class CommunityHealthWorkersServiceImplementation implements CommunityHea
         return R * c;
     }
 }
-

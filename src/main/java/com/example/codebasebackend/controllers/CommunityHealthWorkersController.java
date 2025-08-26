@@ -10,8 +10,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @RestController
 @RequestMapping("/api/chw")
@@ -61,9 +64,19 @@ public class CommunityHealthWorkersController {
 
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
     @GetMapping("/nearest")
-    public ResponseEntity<CommunityHealthWorkerResponse> nearest(@RequestParam("lat") java.math.BigDecimal lat,
-                                                                 @RequestParam("lon") java.math.BigDecimal lon,
-                                                                 @RequestParam(value = "hospitalId", required = false) Long hospitalId) {
-        return ResponseEntity.ok(service.findNearestAvailable(lat, lon, hospitalId));
+    public ResponseEntity<CommunityHealthWorkerResponse> nearest(
+            @RequestParam(value = "lat", required = false) java.math.BigDecimal lat,
+            @RequestParam(value = "lon", required = false) java.math.BigDecimal lon,
+            @RequestParam(value = "latitude", required = false) java.math.BigDecimal latitude,
+            @RequestParam(value = "longitude", required = false) java.math.BigDecimal longitude,
+            @RequestParam(value = "hospitalId", required = false) Long hospitalId,
+            @RequestParam(value = "radiusKm", required = false) java.math.BigDecimal radiusKm) {
+        java.math.BigDecimal effLat = lat != null ? lat : latitude;
+        java.math.BigDecimal effLon = lon != null ? lon : longitude;
+        if (effLat == null || effLon == null) throw new ResponseStatusException(BAD_REQUEST, "lat/lon (or latitude/longitude) are required");
+        if (radiusKm != null) {
+            return ResponseEntity.ok(service.findNearestAvailable(effLat, effLon, hospitalId, radiusKm));
+        }
+        return ResponseEntity.ok(service.findNearestAvailable(effLat, effLon, hospitalId));
     }
 }

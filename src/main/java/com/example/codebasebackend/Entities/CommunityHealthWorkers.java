@@ -20,13 +20,19 @@ import java.time.OffsetDateTime;
 @Table(name = "community_health_workers",
         indexes = {
                 @Index(name = "idx_chw_status", columnList = "status"),
-                @Index(name = "idx_chw_city", columnList = "city")
+                @Index(name = "idx_chw_city", columnList = "city"),
+                @Index(name = "idx_chw_code", columnList = "code")
         }
 )
 public class CommunityHealthWorkers {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(length = 16, unique = true)
+    private String code; // CHW001-style business id
+
+
 
     // Identity
     @NotBlank

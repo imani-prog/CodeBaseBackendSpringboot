@@ -8,6 +8,7 @@ import java.time.OffsetDateTime;
 @Data
 public class CommunityHealthWorkerResponse {
     private Long id;
+    private String code;
     private String firstName;
     private String middleName;
     private String lastName;
@@ -24,4 +25,3 @@ public class CommunityHealthWorkerResponse {
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }
-

@@ -14,5 +14,5 @@ public interface CommunityHealthWorkersService {
     void delete(Long id);
     CommunityHealthWorkerResponse updateLocation(Long id, BigDecimal lat, BigDecimal lon);
     CommunityHealthWorkerResponse findNearestAvailable(BigDecimal lat, BigDecimal lon, Long hospitalId);
+    CommunityHealthWorkerResponse findNearestAvailable(BigDecimal lat, BigDecimal lon, Long hospitalId, BigDecimal radiusKm);
 }
-
