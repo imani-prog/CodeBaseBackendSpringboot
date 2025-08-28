@@ -1,11 +1,11 @@
 package com.example.codebasebackend.services;
 
+import com.example.codebasebackend.Entities.Ambulances;
 import com.example.codebasebackend.dto.AssistanceRequest;
 import com.example.codebasebackend.dto.AssistanceResponse;
 import com.example.codebasebackend.Entities.AmbulanceDispatch;
-import com.example.codebasebackend.Entities.Ambulances;
+import com.example.codebasebackend.repositories.AmbulanceRepository;
 import com.example.codebasebackend.repositories.AmbulanceDispatchRepository;
-import com.example.codebasebackend.repositories.AmbulancesRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,26 +19,88 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @RequiredArgsConstructor
 public class AmbulanceServiceImplementation implements AmbulanceService {
 
+    private final AmbulanceRepository ambulanceRepository;
     private final AmbulanceDispatchRepository dispatchRepository;
-    private final AmbulancesRepository ambulancesRepository;
+
+    @Override
+    public Ambulances addAmbulance(Ambulances ambulance) {
+        return ambulanceRepository.save(ambulance);
+    }
+
+    @Override
+    public List<Ambulances> getAllAmbulances() {
+        return ambulanceRepository.findAll();
+    }
+
+    @Override
+    public Ambulances getAmbulanceById(Long id) {
+        return ambulanceRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Ambulance not found"));
+    }
+
+    @Override
+    public Ambulances getAmbulanceByVehiclePlate(String vehiclePlate) {
+        return ambulanceRepository.findByVehiclePlateIgnoreCase(vehiclePlate)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Ambulance not found"));
+    }
+
+    @Override
+    public Ambulances updateAmbulance(Long id, Ambulances ambulance) {
+        Ambulances existingAmbulance = getAmbulanceById(id);
+        existingAmbulance.setVehiclePlate(ambulance.getVehiclePlate());
+        existingAmbulance.setDriverName(ambulance.getDriverName());
+        existingAmbulance.setDriverPhone(ambulance.getDriverPhone());
+        existingAmbulance.setStatus(ambulance.getStatus());
+        existingAmbulance.setMedicName(ambulance.getMedicName());
+        existingAmbulance.setNotes(ambulance.getNotes());
+        existingAmbulance.setRegistrationNumber(ambulance.getRegistrationNumber());
+        existingAmbulance.setModel(ambulance.getModel());
+        existingAmbulance.setYear(ambulance.getYear());
+        existingAmbulance.setFuelType(ambulance.getFuelType());
+        existingAmbulance.setCapacity(ambulance.getCapacity());
+        existingAmbulance.setEquippedForICU(ambulance.isEquippedForICU());
+        existingAmbulance.setGpsEnabled(ambulance.isGpsEnabled());
+        existingAmbulance.setInsurancePolicyNumber(ambulance.getInsurancePolicyNumber());
+        existingAmbulance.setInsuranceProvider(ambulance.getInsuranceProvider());
+        return ambulanceRepository.save(existingAmbulance);
+    }
+
+    @Override
+    public Ambulances updateAmbulanceByVehiclePlate(String vehiclePlate, Ambulances ambulance) {
+        Ambulances existingAmbulance = getAmbulanceByVehiclePlate(vehiclePlate);
+        existingAmbulance.setVehiclePlate(ambulance.getVehiclePlate());
+        existingAmbulance.setDriverName(ambulance.getDriverName());
+        existingAmbulance.setDriverPhone(ambulance.getDriverPhone());
+        existingAmbulance.setStatus(ambulance.getStatus());
+        existingAmbulance.setMedicName(ambulance.getMedicName());
+        existingAmbulance.setNotes(ambulance.getNotes());
+        existingAmbulance.setRegistrationNumber(ambulance.getRegistrationNumber());
+        existingAmbulance.setModel(ambulance.getModel());
+        existingAmbulance.setYear(ambulance.getYear());
+        existingAmbulance.setFuelType(ambulance.getFuelType());
+        existingAmbulance.setCapacity(ambulance.getCapacity());
+        existingAmbulance.setEquippedForICU(ambulance.isEquippedForICU());
+        existingAmbulance.setGpsEnabled(ambulance.isGpsEnabled());
+        existingAmbulance.setInsurancePolicyNumber(ambulance.getInsurancePolicyNumber());
+        existingAmbulance.setInsuranceProvider(ambulance.getInsuranceProvider());
+        return ambulanceRepository.save(existingAmbulance);
+    }
+
+    @Override
+    public void deleteAmbulance(Long id) {
+        if (!ambulanceRepository.existsById(id)) {
+            throw new ResponseStatusException(NOT_FOUND, "Ambulance not found");
+        }
+        ambulanceRepository.deleteById(id);
+    }
 
     @Override
     public AssistanceResponse createDispatch(AssistanceRequest request) {
-        // Fetch an available ambulance
-        List<Ambulances> availableAmbulances = ambulancesRepository.findByStatus("AVAILABLE");
-        if (availableAmbulances.isEmpty()) {
-            throw new ResponseStatusException(NOT_FOUND, "No available ambulances");
-        }
-
-        Ambulances selectedAmbulance = availableAmbulances.get(0); // Select the first available ambulance
-        selectedAmbulance.setStatus("BUSY"); // Mark the ambulance as busy
-        ambulancesRepository.save(selectedAmbulance);
-
         AmbulanceDispatch dispatch = new AmbulanceDispatch();
+        // Map fields from request to dispatch
         dispatch.setIncidentId(request.getIncidentType());
         dispatch.setPickupLatitude(request.getPickupLatitude());
         dispatch.setPickupLongitude(request.getPickupLongitude());
-        dispatch.setAmbulance(selectedAmbulance); // Associate the ambulance
         // Add other mappings as needed
 
         AmbulanceDispatch savedDispatch = dispatchRepository.save(dispatch);

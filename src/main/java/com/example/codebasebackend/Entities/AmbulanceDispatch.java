@@ -14,6 +14,7 @@ import java.time.OffsetDateTime;
 @Setter
 @Builder
 @NoArgsConstructor
+@Entity
 @AllArgsConstructor
 @jakarta.persistence.Entity
 @Table(name = "ambulance_dispatches",
