@@ -24,7 +24,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
                 @Index(name = "idx_ambulances_model", columnList = "model"),
                 @Index(name = "idx_ambulances_year", columnList = "year"),
                 @Index(name = "idx_ambulances_gps_enabled", columnList = "gps_enabled"),
-                @Index(name = "idx_ambulances_equipped_for_icu", columnList = "equipped_for_icu")
+                @Index(name = "idx_ambulances_equipped_for_icu", columnList = "equipped_for_icu"),
+                @Index(name = "idx_ambulances_vehicle_plate", columnList = "vehicle_plate")
         }
 )
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -44,7 +45,7 @@ public class Ambulances {
     @Column(name = "driver_phone", nullable = false, length = 32)
     private String driverPhone;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = AmbulanceStatusConverter.class)
     @Column(name = "status", nullable = false, length = 24)
     private AmbulanceStatus status; // e.g., AVAILABLE, BUSY, MAINTENANCE
 
@@ -63,7 +64,7 @@ public class Ambulances {
     @Column(nullable = false)
     private int year; // Year of manufacture
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = FuelTypeConverter.class)
     @Column(name = "fuel_type", length = 16)
     private FuelType fuelType; // Fuel type (e.g., Diesel, Petrol, Electric)
 
@@ -85,12 +86,66 @@ public class Ambulances {
     public enum AmbulanceStatus {
         AVAILABLE,
         BUSY,
-        MAINTENANCE
+        MAINTENANCE;
+
+        public static AmbulanceStatus fromString(String value) {
+            if (value == null) return null;
+            String normalized = value.trim().replaceAll("\\s+", "_").toUpperCase();
+            for (AmbulanceStatus s : values()) {
+                if (s.name().equalsIgnoreCase(normalized) || s.name().equals(normalized)) return s;
+            }
+            throw new IllegalArgumentException("Unknown AmbulanceStatus: " + value);
+        }
     }
 
     public enum FuelType {
         DIESEL,
         PETROL,
-        ELECTRIC
+        ELECTRIC;
+
+        public static FuelType fromString(String value) {
+            if (value == null) return null;
+            String normalized = value.trim().toUpperCase();
+            for (FuelType f : values()) {
+                if (f.name().equalsIgnoreCase(normalized) || f.name().equals(normalized)) return f;
+            }
+            throw new IllegalArgumentException("Unknown FuelType: " + value);
+        }
+    }
+
+    @Converter(autoApply = false)
+    public static class FuelTypeConverter implements AttributeConverter<FuelType, String> {
+        @Override
+        public String convertToDatabaseColumn(FuelType attribute) {
+            return attribute == null ? null : attribute.name();
+        }
+
+        @Override
+        public FuelType convertToEntityAttribute(String dbData) {
+            if (dbData == null) return null;
+            try {
+                return FuelType.valueOf(dbData.toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                return FuelType.fromString(dbData);
+            }
+        }
+    }
+
+    @Converter(autoApply = false)
+    public static class AmbulanceStatusConverter implements AttributeConverter<AmbulanceStatus, String> {
+        @Override
+        public String convertToDatabaseColumn(AmbulanceStatus attribute) {
+            return attribute == null ? null : attribute.name();
+        }
+
+        @Override
+        public AmbulanceStatus convertToEntityAttribute(String dbData) {
+            if (dbData == null) return null;
+            try {
+                return AmbulanceStatus.valueOf(dbData.toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                return AmbulanceStatus.fromString(dbData);
+            }
+        }
     }
 }
