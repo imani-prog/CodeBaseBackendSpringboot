@@ -124,6 +124,245 @@ function sendMessage(sender, receiver, content) {
 
 ---
 
+## Database Storage for Messages
+
+### Why Store Messages in Database Even with WebSockets?
+
+**Yes, messages must be stored in the database even when using WebSockets.** Here's why:
+
+1. **Persistence**: WebSockets only handle real-time delivery. If a user is offline, they won't receive the message.
+2. **Message History**: Users need to see previous conversations and message history.
+3. **Audit Trail**: For compliance and legal reasons, especially in healthcare.
+4. **Reliability**: Network issues or server restarts could cause message loss without persistence.
+5. **Multi-device Support**: Users can access messages from different devices.
+
+### Database Schema
+
+Create a `messages` table with the following structure:
+
+```sql
+CREATE TABLE messages (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    sender_id VARCHAR(255) NOT NULL,
+    sender_type ENUM('PATIENT', 'HOSPITAL', 'DISPATCHER', 'AMBULANCE') NOT NULL,
+    receiver_id VARCHAR(255) NOT NULL,
+    receiver_type ENUM('PATIENT', 'HOSPITAL', 'DISPATCHER', 'AMBULANCE') NOT NULL,
+    content TEXT NOT NULL,
+    message_type ENUM('TEXT', 'STATUS_UPDATE', 'NOTIFICATION', 'ALERT') DEFAULT 'TEXT',
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_sender (sender_id, sender_type),
+    INDEX idx_receiver (receiver_id, receiver_type),
+    INDEX idx_created_at (created_at)
+);
+```
+
+### Message Entity
+
+```java
+@Entity
+@Table(name = "messages")
+public class Message {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(name = "sender_id", nullable = false)
+    private String senderId;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sender_type", nullable = false)
+    private UserType senderType;
+    
+    @Column(name = "receiver_id", nullable = false)
+    private String receiverId;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "receiver_type", nullable = false)
+    private UserType receiverType;
+    
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    private String content;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "message_type")
+    private MessageType messageType = MessageType.TEXT;
+    
+    @Column(name = "is_read")
+    private Boolean isRead = false;
+    
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
+    // Getters and Setters
+}
+
+public enum UserType {
+    PATIENT, HOSPITAL, DISPATCHER, AMBULANCE
+}
+
+public enum MessageType {
+    TEXT, STATUS_UPDATE, NOTIFICATION, ALERT
+}
+```
+
+### Updated Messaging Service
+
+```java
+@Service
+@Transactional
+public class MessagingService {
+    
+    @Autowired
+    private MessageRepository messageRepository;
+    
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+    
+    public Message sendMessage(String senderId, UserType senderType, 
+                              String receiverId, UserType receiverType, 
+                              String content, MessageType messageType) {
+        
+        // 1. Save to database first
+        Message message = new Message();
+        message.setSenderId(senderId);
+        message.setSenderType(senderType);
+        message.setReceiverId(receiverId);
+        message.setReceiverType(receiverType);
+        message.setContent(content);
+        message.setMessageType(messageType);
+        
+        Message savedMessage = messageRepository.save(message);
+        
+        // 2. Send via WebSocket for real-time delivery
+        String destination = "/topic/messages/" + receiverId;
+        messagingTemplate.convertAndSend(destination, savedMessage);
+        
+        return savedMessage;
+    }
+    
+    public List<Message> getConversationHistory(String user1Id, UserType user1Type,
+                                               String user2Id, UserType user2Type,
+                                               Pageable pageable) {
+        return messageRepository.findConversationBetweenUsers(
+            user1Id, user1Type, user2Id, user2Type, pageable);
+    }
+    
+    public List<Message> getUnreadMessages(String receiverId, UserType receiverType) {
+        return messageRepository.findByReceiverIdAndReceiverTypeAndIsReadFalse(
+            receiverId, receiverType);
+    }
+    
+    public void markMessageAsRead(Long messageId) {
+        messageRepository.updateReadStatus(messageId, true);
+    }
+}
+```
+
+### Message Repository
+
+```java
+@Repository
+public interface MessageRepository extends JpaRepository<Message, Long> {
+    
+    @Query("SELECT m FROM Message m WHERE " +
+           "((m.senderId = :user1Id AND m.senderType = :user1Type AND " +
+           "m.receiverId = :user2Id AND m.receiverType = :user2Type) OR " +
+           "(m.senderId = :user2Id AND m.senderType = :user2Type AND " +
+           "m.receiverId = :user1Id AND m.receiverType = :user1Type)) " +
+           "ORDER BY m.createdAt DESC")
+    List<Message> findConversationBetweenUsers(
+        @Param("user1Id") String user1Id, 
+        @Param("user1Type") UserType user1Type,
+        @Param("user2Id") String user2Id, 
+        @Param("user2Type") UserType user2Type,
+        Pageable pageable);
+    
+    List<Message> findByReceiverIdAndReceiverTypeAndIsReadFalse(
+        String receiverId, UserType receiverType);
+    
+    @Modifying
+    @Query("UPDATE Message m SET m.isRead = :isRead WHERE m.id = :messageId")
+    void updateReadStatus(@Param("messageId") Long messageId, 
+                         @Param("isRead") Boolean isRead);
+}
+```
+
+### Hybrid Approach: WebSocket + Database
+
+The recommended approach is:
+
+1. **Save First**: Always save the message to the database first for persistence.
+2. **Send via WebSocket**: Then send the message via WebSocket for real-time delivery.
+3. **Fallback Mechanism**: If WebSocket delivery fails, the message is still stored and can be retrieved later.
+4. **Offline Support**: When users come online, they can fetch missed messages from the database.
+
+### Message Delivery Flow
+
+```java
+@RestController
+@RequestMapping("/api/messages")
+public class MessagingController {
+    
+    @Autowired
+    private MessagingService messagingService;
+    
+    @PostMapping("/send")
+    public ResponseEntity<Message> sendMessage(@RequestBody SendMessageRequest request) {
+        Message savedMessage = messagingService.sendMessage(
+            request.getSenderId(),
+            request.getSenderType(),
+            request.getReceiverId(),
+            request.getReceiverType(),
+            request.getContent(),
+            request.getMessageType()
+        );
+        
+        return ResponseEntity.ok(savedMessage);
+    }
+    
+    @GetMapping("/history")
+    public ResponseEntity<List<Message>> getMessageHistory(
+            @RequestParam String user1Id,
+            @RequestParam UserType user1Type,
+            @RequestParam String user2Id,
+            @RequestParam UserType user2Type,
+            @PageableDefault(size = 50) Pageable pageable) {
+        
+        List<Message> messages = messagingService.getConversationHistory(
+            user1Id, user1Type, user2Id, user2Type, pageable);
+        
+        return ResponseEntity.ok(messages);
+    }
+    
+    @GetMapping("/unread")
+    public ResponseEntity<List<Message>> getUnreadMessages(
+            @RequestParam String receiverId,
+            @RequestParam UserType receiverType) {
+        
+        List<Message> unreadMessages = messagingService.getUnreadMessages(
+            receiverId, receiverType);
+        
+        return ResponseEntity.ok(unreadMessages);
+    }
+    
+    @PutMapping("/{messageId}/read")
+    public ResponseEntity<Void> markAsRead(@PathVariable Long messageId) {
+        messagingService.markMessageAsRead(messageId);
+        return ResponseEntity.ok().build();
+    }
+}
+```
+
+---
+
 ## Security Considerations
 1. **Authentication**: Ensure only authenticated users can send and receive messages.
 2. **Authorization**: Restrict messaging to relevant entities (e.g., a patient cannot message another patient).
