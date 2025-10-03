@@ -14,7 +14,52 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "training_modules")
+@jakarta.persistence.Entity
+
+@Table(name = "training_modules",
+       indexes = {
+           // Primary search and filtering indexes
+           @Index(name = "idx_course_name", columnList = "course_name"),
+           @Index(name = "idx_course_level", columnList = "course_level"),
+           @Index(name = "idx_instructor_name", columnList = "instructor_name"),
+           @Index(name = "idx_rating", columnList = "rating"),
+           @Index(name = "idx_price", columnList = "price"),
+           @Index(name = "idx_duration", columnList = "duration"),
+
+           // Status and availability indexes
+           @Index(name = "idx_is_active", columnList = "is_active"),
+           @Index(name = "idx_enroll_now_available", columnList = "enroll_now_available"),
+           @Index(name = "idx_certification", columnList = "certification"),
+
+           // Enrollment management indexes
+           @Index(name = "idx_enrolled_count", columnList = "enrolled_count"),
+           @Index(name = "idx_max_enrollment", columnList = "max_enrollment"),
+
+           // Date-based indexes
+           @Index(name = "idx_created_at", columnList = "created_at"),
+           @Index(name = "idx_updated_at", columnList = "updated_at"),
+
+           // Composite indexes for common query patterns
+           @Index(name = "idx_active_level", columnList = "is_active, course_level"),
+           @Index(name = "idx_active_rating", columnList = "is_active, rating"),
+           @Index(name = "idx_active_enroll_available", columnList = "is_active, enroll_now_available"),
+           @Index(name = "idx_active_certification", columnList = "is_active, certification"),
+           @Index(name = "idx_level_rating", columnList = "course_level, rating"),
+           @Index(name = "idx_instructor_active", columnList = "instructor_name, is_active"),
+           @Index(name = "idx_price_active", columnList = "price, is_active"),
+
+           // Enrollment capacity management
+           @Index(name = "idx_enrollment_capacity", columnList = "enrolled_count, max_enrollment, enroll_now_available"),
+
+           // Search optimization
+           @Index(name = "idx_name_instructor", columnList = "course_name, instructor_name"),
+           @Index(name = "idx_rating_created", columnList = "rating, created_at"),
+
+           // Popular queries optimization
+           @Index(name = "idx_active_level_rating_created", columnList = "is_active, course_level, rating, created_at"),
+           @Index(name = "idx_available_slots", columnList = "is_active, enroll_now_available, enrolled_count, max_enrollment")
+       })
+
 public class TrainingModule {
 
     @Id
@@ -25,7 +70,6 @@ public class TrainingModule {
     @Column(name = "course_name", nullable = false, length = 200)
     private String courseName;
 
-    @NotBlank(message = "Course level is required")
     @Column(name = "course_level", nullable = false)
     @Enumerated(EnumType.STRING)
     private CourseLevel courseLevel;
@@ -36,7 +80,7 @@ public class TrainingModule {
 
     @DecimalMin(value = "0.0", message = "Rating must be at least 0.0")
     @DecimalMax(value = "5.0", message = "Rating must not exceed 5.0")
-    @Column(name = "rating", columnDefinition = "DECIMAL(2,1) DEFAULT 0.0")
+    @Column(name = "rating", columnDefinition = "DECIMAL(2,1)")
     @Builder.Default
     private double rating = 0.0;
 

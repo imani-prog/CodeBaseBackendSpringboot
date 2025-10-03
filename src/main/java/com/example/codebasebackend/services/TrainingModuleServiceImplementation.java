@@ -91,7 +91,7 @@ public class TrainingModuleServiceImplementation implements TrainingModuleServic
 
     @Override
     public List<TrainingModule> getAvailableForEnrollment() {
-        return trainingModuleRepository.findCoursesWithAvailableSlots();
+        return findCoursesWithAvailableSlots();
     }
 
     @Override
@@ -101,22 +101,22 @@ public class TrainingModuleServiceImplementation implements TrainingModuleServic
 
     @Override
     public List<TrainingModule> getTopRatedCourses() {
-        return trainingModuleRepository.findTopRatedCourses();
+        return trainingModuleRepository.findByIsActiveTrueOrderByRatingDescEnrolledCountDesc();
     }
 
     @Override
     public List<TrainingModule> searchCourses(String keyword) {
-        return trainingModuleRepository.searchByKeyword(keyword);
+        return searchByKeyword(keyword);
     }
 
     @Override
     public List<TrainingModule> getCoursesByTag(String tag) {
-        return trainingModuleRepository.findByTagsContainingIgnoreCase(tag);
+        return findByTagsContainingIgnoreCase(tag);
     }
 
     @Override
     public List<TrainingModule> getCoursesByMinRating(double minRating) {
-        return trainingModuleRepository.findByRatingGreaterThanEqualAndIsActiveTrue(minRating);
+        return trainingModuleRepository.findByRatingGreaterThanEqualAndIsActiveTrueOrderByRatingDesc(minRating);
     }
 
     @Override
@@ -162,5 +162,139 @@ public class TrainingModuleServiceImplementation implements TrainingModuleServic
                     return trainingModuleRepository.save(module);
                 })
                 .orElseThrow(() -> new RuntimeException("Training module not found with id: " + moduleId));
+    }
+
+    // Complex search methods implemented in service layer
+
+    @Override
+    public List<TrainingModule> searchByKeyword(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAllActiveTrainingModules();
+        }
+
+        String searchTerm = keyword.toLowerCase().trim();
+
+        // Get all active training modules and filter in Java
+        return getAllActiveTrainingModules().stream()
+                .filter(module ->
+                    (module.getCourseName() != null &&
+                     module.getCourseName().toLowerCase().contains(searchTerm)) ||
+                    (module.getDescription() != null &&
+                     module.getDescription().toLowerCase().contains(searchTerm)) ||
+                    (module.getInstructorName() != null &&
+                     module.getInstructorName().toLowerCase().contains(searchTerm))
+                )
+                .toList();
+    }
+
+    @Override
+    public List<TrainingModule> findCoursesWithAvailableSlots() {
+        return getAllActiveTrainingModules().stream()
+                .filter(module ->
+                    module.isEnrollNowAvailable() &&
+                    (module.getMaxEnrollment() == null ||
+                     module.getEnrolledCount() < module.getMaxEnrollment())
+                )
+                .toList();
+    }
+
+    @Override
+    public List<TrainingModule> findByTagsContainingIgnoreCase(String tag) {
+        if (tag == null || tag.trim().isEmpty()) {
+            return List.of();
+        }
+
+        String searchTag = tag.toLowerCase().trim();
+
+        return getAllActiveTrainingModules().stream()
+                .filter(module ->
+                    module.getTags() != null &&
+                    module.getTags().stream()
+                        .anyMatch(moduleTag ->
+                            moduleTag.toLowerCase().contains(searchTag)
+                        )
+                )
+                .toList();
+    }
+
+    @Override
+    public List<TrainingModule> searchByMultipleCriteria(String keyword, CourseLevel level,
+                                                        Double minRating, Double maxPrice,
+                                                        Boolean certification) {
+        List<TrainingModule> results = getAllActiveTrainingModules();
+
+        // Apply keyword search
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String searchTerm = keyword.toLowerCase().trim();
+            results = results.stream()
+                    .filter(module ->
+                            (module.getCourseName() != null &&
+                             module.getCourseName().toLowerCase().contains(searchTerm)) ||
+                            (module.getDescription() != null &&
+                             module.getDescription().toLowerCase().contains(searchTerm)) ||
+                            (module.getInstructorName() != null &&
+                             module.getInstructorName().toLowerCase().contains(searchTerm))
+                    )
+                    .toList();
+        }
+
+        // Apply level filter
+        if (level != null) {
+            results = results.stream()
+                    .filter(module -> module.getCourseLevel() == level)
+                    .toList();
+        }
+
+        // Apply rating filter
+        if (minRating != null) {
+            results = results.stream()
+                    .filter(module -> module.getRating() >= minRating)
+                    .toList();
+        }
+
+        // Apply price filter
+        if (maxPrice != null) {
+            results = results.stream()
+                    .filter(module -> module.getPrice() == null || module.getPrice() <= maxPrice)
+                    .toList();
+        }
+
+        // Apply certification filter
+        if (certification != null) {
+            results = results.stream()
+                    .filter(module -> module.isCertification() == certification)
+                    .toList();
+        }
+
+        return results;
+    }
+
+    @Override
+    public List<TrainingModule> getCoursesWithAvailableEnrollment() {
+        return findCoursesWithAvailableSlots();
+    }
+
+    @Override
+    public List<TrainingModule> getPopularCourses(int limit) {
+        return getAllActiveTrainingModules().stream()
+                .sorted((a, b) -> {
+                    // First sort by rating (descending)
+                    int ratingComparison = Double.compare(b.getRating(), a.getRating());
+                    if (ratingComparison != 0) {
+                        return ratingComparison;
+                    }
+                    // Then by enrolled count (descending)
+                    return Integer.compare(b.getEnrolledCount(), a.getEnrolledCount());
+                })
+                .limit(limit)
+                .toList();
+    }
+
+    @Override
+    public List<TrainingModule> getRecentCourses(int limit) {
+        return trainingModuleRepository.findByIsActiveTrueOrderByCreatedAtDesc()
+                .stream()
+                .limit(limit)
+                .toList();
     }
 }

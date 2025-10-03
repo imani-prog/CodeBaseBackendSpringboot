@@ -43,4 +43,21 @@ public interface TrainingModuleService {
     TrainingModule enrollStudent(Long moduleId);
 
     TrainingModule updateRating(Long moduleId, double newRating, String comment);
+
+    // Complex search methods moved from repository
+    List<TrainingModule> searchByKeyword(String keyword);
+
+    List<TrainingModule> findCoursesWithAvailableSlots();
+
+    List<TrainingModule> findByTagsContainingIgnoreCase(String tag);
+
+    List<TrainingModule> searchByMultipleCriteria(String keyword, CourseLevel level,
+                                                 Double minRating, Double maxPrice,
+                                                 Boolean certification);
+
+    List<TrainingModule> getCoursesWithAvailableEnrollment();
+
+    List<TrainingModule> getPopularCourses(int limit);
+
+    List<TrainingModule> getRecentCourses(int limit);
 }
