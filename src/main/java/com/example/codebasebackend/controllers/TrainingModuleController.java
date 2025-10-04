@@ -1,171 +1,159 @@
 package com.example.codebasebackend.controllers;
 
+import com.example.codebasebackend.Entities.AuditLog;
 import com.example.codebasebackend.Entities.TrainingModule;
 import com.example.codebasebackend.Entities.TrainingModule.CourseLevel;
+import com.example.codebasebackend.configs.Auditable;
 import com.example.codebasebackend.services.TrainingModuleService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/training-modules")
-@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class TrainingModuleController {
 
-    @Autowired
-    private TrainingModuleService trainingModuleService;
+    private final TrainingModuleService trainingModuleService;
 
+    // Create training module
+    @Auditable(eventType = AuditLog.EventType.CREATE, entityType = "TrainingModule", entityIdExpression = "#result.body.id", includeArgs = true, includeResult = true)
     @PostMapping
     public ResponseEntity<TrainingModule> createTrainingModule(@Valid @RequestBody TrainingModule trainingModule) {
-        try {
-            TrainingModule createdModule = trainingModuleService.createTrainingModule(trainingModule);
-            return new ResponseEntity<>(createdModule, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
-        }
+        TrainingModule saved = trainingModuleService.createTrainingModule(trainingModule);
+        return ResponseEntity.ok(saved);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<TrainingModule> getTrainingModuleById(@PathVariable Long id) {
-        Optional<TrainingModule> module = trainingModuleService.getTrainingModuleById(id);
-        return module.map(trainingModule -> ResponseEntity.ok().body(trainingModule))
-                .orElse(ResponseEntity.notFound().build());
-    }
-
+    // List all training modules
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
     @GetMapping
-    public ResponseEntity<Page<TrainingModule>> getAllTrainingModules(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase("desc") ?
-            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<TrainingModule> modules = trainingModuleService.getAllTrainingModules(pageable);
-        return ResponseEntity.ok(modules);
+    public ResponseEntity<List<TrainingModule>> listTrainingModules() {
+        return ResponseEntity.ok(trainingModuleService.getAllTrainingModules());
     }
 
-    @GetMapping("/active")
-    public ResponseEntity<List<TrainingModule>> getAllActiveTrainingModules() {
-        List<TrainingModule> modules = trainingModuleService.getAllActiveTrainingModules();
-        return ResponseEntity.ok(modules);
+    // Get training module by id
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", entityIdExpression = "#id", includeArgs = true)
+    @GetMapping("/{id}")
+    public ResponseEntity<TrainingModule> getTrainingModule(@PathVariable Long id) {
+        return ResponseEntity.ok(trainingModuleService.getTrainingModuleById(id));
     }
 
+
+//    @Auditable(eventType = AuditLog.EventType.CREATE, entityType = "TrainingModule", entityIdExpression = "#result.body.id", includeArgs = true, includeResult = true)
+//    @PostMapping
+//    public ResponseEntity<TrainingModule> createTrainingModule(@Valid @RequestBody TrainingModule trainingModule) {
+//        TrainingModule saved = trainingModuleService.createTrainingModule(trainingModule);
+//        return ResponseEntity.ok(saved);
+//    }
+
+    // Update training module
+    @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "TrainingModule", entityIdExpression = "#id", includeArgs = true, includeResult = true)
     @PutMapping("/{id}")
     public ResponseEntity<TrainingModule> updateTrainingModule(
             @PathVariable Long id,
             @Valid @RequestBody TrainingModule trainingModule) {
-        try {
-            TrainingModule updatedModule = trainingModuleService.updateTrainingModule(id, trainingModule);
-            return ResponseEntity.ok(updatedModule);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        TrainingModule updated = trainingModuleService.updateTrainingModule(id, trainingModule);
+        return ResponseEntity.ok(updated);
     }
 
+    // Delete training module
+    @Auditable(eventType = AuditLog.EventType.DELETE, entityType = "TrainingModule", entityIdExpression = "#id", includeArgs = true)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTrainingModule(@PathVariable Long id) {
         trainingModuleService.deleteTrainingModule(id);
         return ResponseEntity.noContent().build();
     }
 
+    // Deactivate training module (soft delete)
+    @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "TrainingModule", entityIdExpression = "#id", includeArgs = true)
     @PatchMapping("/{id}/deactivate")
     public ResponseEntity<Void> deactivateTrainingModule(@PathVariable Long id) {
         trainingModuleService.deactivateTrainingModule(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
+    // Get active training modules
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
+    @GetMapping("/active")
+    public ResponseEntity<List<TrainingModule>> getActiveTrainingModules() {
+        return ResponseEntity.ok(trainingModuleService.getAllActiveTrainingModules());
+    }
+
+    // Get training modules by course level
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
     @GetMapping("/level/{level}")
     public ResponseEntity<List<TrainingModule>> getTrainingModulesByLevel(@PathVariable CourseLevel level) {
-        List<TrainingModule> modules = trainingModuleService.getTrainingModulesByLevel(level);
-        return ResponseEntity.ok(modules);
+        return ResponseEntity.ok(trainingModuleService.getTrainingModulesByLevel(level));
     }
 
+    // Get training modules by instructor
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
     @GetMapping("/instructor/{instructorName}")
     public ResponseEntity<List<TrainingModule>> getTrainingModulesByInstructor(@PathVariable String instructorName) {
-        List<TrainingModule> modules = trainingModuleService.getTrainingModulesByInstructor(instructorName);
-        return ResponseEntity.ok(modules);
+        return ResponseEntity.ok(trainingModuleService.getTrainingModulesByInstructor(instructorName));
     }
 
-    @GetMapping("/available-for-enrollment")
-    public ResponseEntity<List<TrainingModule>> getAvailableForEnrollment() {
-        List<TrainingModule> modules = trainingModuleService.getAvailableForEnrollment();
-        return ResponseEntity.ok(modules);
-    }
-
+    // Get certification courses
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
     @GetMapping("/certification")
     public ResponseEntity<List<TrainingModule>> getCertificationCourses() {
-        List<TrainingModule> modules = trainingModuleService.getCertificationCourses();
-        return ResponseEntity.ok(modules);
+        return ResponseEntity.ok(trainingModuleService.getCertificationCourses());
     }
 
+    // Get top rated courses
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
     @GetMapping("/top-rated")
     public ResponseEntity<List<TrainingModule>> getTopRatedCourses() {
-        List<TrainingModule> modules = trainingModuleService.getTopRatedCourses();
-        return ResponseEntity.ok(modules);
+        return ResponseEntity.ok(trainingModuleService.getTopRatedCourses());
     }
 
+    // Get courses by minimum rating
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
+    @GetMapping("/rating/{minRating}")
+    public ResponseEntity<List<TrainingModule>> getCoursesByMinRating(@PathVariable double minRating) {
+        return ResponseEntity.ok(trainingModuleService.getCoursesByMinRating(minRating));
+    }
+
+    // Get courses with available slots
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
+    @GetMapping("/available")
+    public ResponseEntity<List<TrainingModule>> getCoursesWithAvailableSlots() {
+        return ResponseEntity.ok(trainingModuleService.getCoursesWithAvailableSlots());
+    }
+
+    // Search courses by keyword
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
     @GetMapping("/search")
     public ResponseEntity<List<TrainingModule>> searchCourses(@RequestParam String keyword) {
-        List<TrainingModule> modules = trainingModuleService.searchCourses(keyword);
-        return ResponseEntity.ok(modules);
+        return ResponseEntity.ok(trainingModuleService.searchCourses(keyword));
     }
 
+    // Get courses by tag
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
     @GetMapping("/tag/{tag}")
     public ResponseEntity<List<TrainingModule>> getCoursesByTag(@PathVariable String tag) {
-        List<TrainingModule> modules = trainingModuleService.getCoursesByTag(tag);
-        return ResponseEntity.ok(modules);
+        return ResponseEntity.ok(trainingModuleService.getCoursesByTag(tag));
     }
 
-    @GetMapping("/min-rating/{minRating}")
-    public ResponseEntity<List<TrainingModule>> getCoursesByMinRating(@PathVariable double minRating) {
-        List<TrainingModule> modules = trainingModuleService.getCoursesByMinRating(minRating);
-        return ResponseEntity.ok(modules);
-    }
-
+    // Enroll a student in a course
+    @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "TrainingModule", entityIdExpression = "#id", includeArgs = true, includeResult = true)
     @PostMapping("/{id}/enroll")
     public ResponseEntity<TrainingModule> enrollStudent(@PathVariable Long id) {
-        try {
-            TrainingModule module = trainingModuleService.enrollStudent(id);
-            return ResponseEntity.ok(module);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        TrainingModule enrolled = trainingModuleService.enrollStudent(id);
+        return ResponseEntity.ok(enrolled);
     }
 
+    // Add rating and comment to a course
+    @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "TrainingModule", entityIdExpression = "#id", includeArgs = true, includeResult = true)
     @PostMapping("/{id}/rate")
-    public ResponseEntity<TrainingModule> rateModule(
+    public ResponseEntity<TrainingModule> addRating(
             @PathVariable Long id,
-            @RequestBody Map<String, Object> ratingData) {
-        try {
-            double rating = ((Number) ratingData.get("rating")).doubleValue();
-            String comment = (String) ratingData.get("comment");
-
-            TrainingModule module = trainingModuleService.updateRating(id, rating, comment);
-            return ResponseEntity.ok(module);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @GetMapping("/course-levels")
-    public ResponseEntity<CourseLevel[]> getCourseLevels() {
-        return ResponseEntity.ok(CourseLevel.values());
+            @RequestParam double rating,
+            @RequestParam(required = false) String comment) {
+        TrainingModule rated = trainingModuleService.addRating(id, rating, comment);
+        return ResponseEntity.ok(rated);
     }
 }

@@ -90,7 +90,6 @@ public class TrainingModule {
     @Builder.Default
     private List<String> comments = new ArrayList<>();
 
-    @Lob
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
