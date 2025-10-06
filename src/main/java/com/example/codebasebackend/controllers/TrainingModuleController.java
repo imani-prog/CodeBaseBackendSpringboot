@@ -75,6 +75,14 @@ public class TrainingModuleController {
         return ResponseEntity.noContent().build();
     }
 
+    // Activate training module
+    @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "TrainingModule", entityIdExpression = "#id", includeArgs = true)
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<Void> activateTrainingModule(@PathVariable Long id) {
+        trainingModuleService.activateTrainingModule(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // Get active training modules
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "TrainingModule", includeArgs = true)
     @GetMapping("/active")

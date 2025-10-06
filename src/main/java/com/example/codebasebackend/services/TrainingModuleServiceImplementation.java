@@ -50,6 +50,7 @@ public class TrainingModuleServiceImplementation implements TrainingModuleServic
                     existingModule.setCourseName(updatedModule.getCourseName());
                     existingModule.setCourseLevel(updatedModule.getCourseLevel());
                     existingModule.setDuration(updatedModule.getDuration());
+                    existingModule.setRating(updatedModule.getRating()); // Added missing rating field
                     existingModule.setDescription(updatedModule.getDescription());
                     existingModule.setBrochureUrl(updatedModule.getBrochureUrl());
                     existingModule.setCertification(updatedModule.isCertification());
@@ -60,6 +61,7 @@ public class TrainingModuleServiceImplementation implements TrainingModuleServic
                     existingModule.setTags(updatedModule.getTags());
                     existingModule.setPrice(updatedModule.getPrice());
                     existingModule.setMaxEnrollment(updatedModule.getMaxEnrollment());
+                    existingModule.setActive(updatedModule.isActive()); // Also added isActive field
                     return trainingModuleRepository.save(existingModule);
                 })
                 .orElseThrow(() -> new RuntimeException("Training module not found with id: " + id));
@@ -79,6 +81,18 @@ public class TrainingModuleServiceImplementation implements TrainingModuleServic
                 .ifPresentOrElse(
                         module -> {
                             module.setActive(false);
+                            trainingModuleRepository.save(module);
+                        },
+                        () -> { throw new RuntimeException("Training module not found with id: " + id); }
+                );
+    }
+
+    @Override
+    public void activateTrainingModule(Long id) {
+        trainingModuleRepository.findById(id)
+                .ifPresentOrElse(
+                        module -> {
+                            module.setActive(true);
                             trainingModuleRepository.save(module);
                         },
                         () -> { throw new RuntimeException("Training module not found with id: " + id); }

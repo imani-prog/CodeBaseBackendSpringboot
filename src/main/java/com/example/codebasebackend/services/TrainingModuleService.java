@@ -23,6 +23,8 @@ public interface TrainingModuleService {
 
     void deactivateTrainingModule(Long id);
 
+    void activateTrainingModule(Long id);
+
     // Query methods
     List<TrainingModule> getTrainingModulesByLevel(CourseLevel level);
 
