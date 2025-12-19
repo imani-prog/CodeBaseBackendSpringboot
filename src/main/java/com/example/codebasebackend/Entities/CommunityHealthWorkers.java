@@ -33,8 +33,6 @@ public class CommunityHealthWorkers {
     private String code; // CHW001-style business id
 
 
-
-    // Identity
     @NotBlank
     @Column(nullable = false, length = 100)
     private String firstName;
@@ -55,7 +53,7 @@ public class CommunityHealthWorkers {
     @Column(length = 32)
     private String phone;
 
-    // Address (optional; geolocation preferred for proximity)
+    // Address
     @Column(length = 150)
     private String addressLine1;
 
