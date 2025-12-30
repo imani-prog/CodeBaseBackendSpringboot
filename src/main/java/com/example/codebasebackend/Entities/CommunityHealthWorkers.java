@@ -90,7 +90,7 @@ public class CommunityHealthWorkers {
     private Status status;
 
     @Column(length = 200)
-    private String specialization; // optional freeform, e.g., maternal health
+    private String specialization; // optional e.g., maternal health
 
     // Audit
     @CreationTimestamp
