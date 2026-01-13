@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Getter
@@ -21,7 +22,9 @@ import java.time.OffsetDateTime;
         indexes = {
                 @Index(name = "idx_chw_status", columnList = "status"),
                 @Index(name = "idx_chw_city", columnList = "city"),
-                @Index(name = "idx_chw_code", columnList = "code")
+                @Index(name = "idx_chw_code", columnList = "code"),
+                @Index(name = "idx_chw_region", columnList = "region"),
+                @Index(name = "idx_chw_start_date", columnList = "startDate")
         }
 )
 public class CommunityHealthWorkers {
@@ -79,6 +82,33 @@ public class CommunityHealthWorkers {
     @Column(precision = 9, scale = 6)
     private BigDecimal longitude;
 
+    // Regional Assignment
+    @Column(length = 100)
+    private String region; // Regional assignment (e.g., "Nairobi", "Mombasa", "Kisumu")
+
+    // Workload Management
+    @Column
+    private Integer assignedPatients; // Number of patients assigned to this CHW (default: 0)
+
+    @Column
+    private LocalDate startDate; // Employment/service start date
+
+    @Column
+    private OffsetDateTime lastStatusUpdate; // Timestamp when status was last changed
+
+    // Performance Metrics
+    @Column
+    private Integer monthlyVisits; // Number of visits this month (default: 0)
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal successRate; // Success rate percentage (0-100)
+
+    @Column(length = 50)
+    private String responseTime; // Average response time (e.g., "1.8hrs", "2.5hrs")
+
+    @Column(precision = 3, scale = 2)
+    private BigDecimal rating; // Rating out of 5.0 (e.g., 4.8)
+
     // Affiliation
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hospital_id")
@@ -104,6 +134,20 @@ public class CommunityHealthWorkers {
     @PrePersist
     void prePersistDefaults() {
         if (status == null) status = Status.AVAILABLE;
+        if (assignedPatients == null) assignedPatients = 0;
+        if (monthlyVisits == null) monthlyVisits = 0;
+        if (successRate == null) successRate = BigDecimal.ZERO;
+        if (rating == null) rating = BigDecimal.ZERO;
+        if (lastStatusUpdate == null) lastStatusUpdate = OffsetDateTime.now();
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        // Automatically update lastStatusUpdate when entity changes
+        // Status-specific tracking can be done in service layer
+        if (lastStatusUpdate == null) {
+            lastStatusUpdate = OffsetDateTime.now();
+        }
     }
 
     public enum Status { AVAILABLE, BUSY, OFFLINE }

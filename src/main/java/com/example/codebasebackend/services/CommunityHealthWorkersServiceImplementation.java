@@ -4,14 +4,20 @@ import com.example.codebasebackend.Entities.CommunityHealthWorkers;
 import com.example.codebasebackend.Entities.Hospital;
 import com.example.codebasebackend.dto.CommunityHealthWorkerRequest;
 import com.example.codebasebackend.dto.CommunityHealthWorkerResponse;
+import com.example.codebasebackend.dto.PerformanceMetricsRequest;
 import com.example.codebasebackend.repositories.CommunityHealthWorkersRepository;
 import com.example.codebasebackend.repositories.HospitalRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -63,11 +69,31 @@ public class CommunityHealthWorkersServiceImplementation implements CommunityHea
     @Override
     public CommunityHealthWorkerResponse update(Long id, CommunityHealthWorkerRequest r) {
         CommunityHealthWorkers e = chwRepo.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "CHW not found"));
+
+        // Check if status changed
+        CommunityHealthWorkers.Status oldStatus = e.getStatus();
+        CommunityHealthWorkers.Status newStatus = oldStatus;
+        if (r.getStatus() != null) {
+            try {
+                newStatus = CommunityHealthWorkers.Status.valueOf(r.getStatus().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                throw new ResponseStatusException(BAD_REQUEST, "Invalid status: " + r.getStatus());
+            }
+        }
+        boolean statusChanged = !oldStatus.equals(newStatus);
+
         apply(e, r);
         if (r.getHospitalId() != null) {
             Hospital h = hospitalRepo.findById(r.getHospitalId()).orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Hospital not found"));
             e.setHospital(h);
         }
+
+        // Update status and timestamp if changed
+        e.setStatus(newStatus);
+        if (statusChanged) {
+            e.setLastStatusUpdate(OffsetDateTime.now());
+        }
+
         return toResponse(chwRepo.save(e));
     }
 
@@ -138,6 +164,15 @@ public class CommunityHealthWorkersServiceImplementation implements CommunityHea
         if (r.getLatitude() != null) e.setLatitude(r.getLatitude());
         if (r.getLongitude() != null) e.setLongitude(r.getLongitude());
         if (r.getSpecialization() != null) e.setSpecialization(r.getSpecialization());
+
+        // New fields
+        if (r.getRegion() != null) e.setRegion(r.getRegion());
+        if (r.getAssignedPatients() != null) e.setAssignedPatients(r.getAssignedPatients());
+        if (r.getStartDate() != null) e.setStartDate(r.getStartDate());
+        if (r.getMonthlyVisits() != null) e.setMonthlyVisits(r.getMonthlyVisits());
+        if (r.getSuccessRate() != null) e.setSuccessRate(r.getSuccessRate());
+        if (r.getResponseTime() != null) e.setResponseTime(r.getResponseTime());
+        if (r.getRating() != null) e.setRating(r.getRating());
     }
 
     private CommunityHealthWorkerResponse toResponse(CommunityHealthWorkers e) {
@@ -159,7 +194,102 @@ public class CommunityHealthWorkersServiceImplementation implements CommunityHea
         dto.setSpecialization(e.getSpecialization());
         dto.setCreatedAt(e.getCreatedAt());
         dto.setUpdatedAt(e.getUpdatedAt());
+
+        // New fields
+        dto.setRegion(e.getRegion());
+        dto.setAssignedPatients(e.getAssignedPatients());
+        dto.setStartDate(e.getStartDate());
+        dto.setLastStatusUpdate(e.getLastStatusUpdate());
+        dto.setMonthlyVisits(e.getMonthlyVisits());
+        dto.setSuccessRate(e.getSuccessRate());
+        dto.setResponseTime(e.getResponseTime());
+        dto.setRating(e.getRating());
+
+        // Computed fields
+        dto.setFullName(buildFullName(e.getFirstName(), e.getMiddleName(), e.getLastName()));
+        dto.setAvatar(buildAvatar(e.getFirstName(), e.getLastName()));
+
         return dto;
+    }
+
+    private String buildFullName(String firstName, String middleName, String lastName) {
+        StringBuilder fullName = new StringBuilder();
+        if (firstName != null && !firstName.isEmpty()) {
+            fullName.append(firstName);
+        }
+        if (middleName != null && !middleName.isEmpty()) {
+            if (fullName.length() > 0) fullName.append(" ");
+            fullName.append(middleName);
+        }
+        if (lastName != null && !lastName.isEmpty()) {
+            if (fullName.length() > 0) fullName.append(" ");
+            fullName.append(lastName);
+        }
+        return fullName.toString();
+    }
+
+    private String buildAvatar(String firstName, String lastName) {
+        String firstInitial = firstName != null && !firstName.isEmpty()
+            ? firstName.substring(0, 1) : "";
+        String lastInitial = lastName != null && !lastName.isEmpty()
+            ? lastName.substring(0, 1) : "";
+        return (firstInitial + lastInitial).toUpperCase();
+    }
+
+    // New service methods
+
+    @Override
+    public CommunityHealthWorkerResponse updatePerformanceMetrics(Long id, PerformanceMetricsRequest request) {
+        CommunityHealthWorkers chw = chwRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "CHW not found with id: " + id));
+
+        if (request.getMonthlyVisits() != null) {
+            chw.setMonthlyVisits(request.getMonthlyVisits());
+        }
+        if (request.getSuccessRate() != null) {
+            chw.setSuccessRate(request.getSuccessRate());
+        }
+        if (request.getResponseTime() != null) {
+            chw.setResponseTime(request.getResponseTime());
+        }
+        if (request.getRating() != null) {
+            chw.setRating(request.getRating());
+        }
+
+        CommunityHealthWorkers updated = chwRepo.save(chw);
+        return toResponse(updated);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommunityHealthWorkerResponse> findByRegion(String region) {
+        return chwRepo.findByRegion(region).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommunityHealthWorkerResponse> findByStatus(CommunityHealthWorkers.Status status) {
+        return chwRepo.findByStatus(status).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CommunityHealthWorkerResponse> search(String region,
+                                                       CommunityHealthWorkers.Status status,
+                                                       String city,
+                                                       int page, int size,
+                                                       String sortBy, String sortDirection) {
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("DESC")
+                ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        Page<CommunityHealthWorkers> chwPage = chwRepo.searchWithFilters(region, status, city, pageable);
+
+        return chwPage.map(this::toResponse);
     }
 
     // Haversine distance in KM
