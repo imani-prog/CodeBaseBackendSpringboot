@@ -133,6 +133,9 @@ public class Hospital {
     private String departments; // e.g., cardiology, oncology
 
     @Column(columnDefinition = "text")
+    private String facilities; // Comma-separated list: LABORATORY, PHARMACY, RADIOLOGY, ICU, etc.
+
+    @Column(columnDefinition = "text")
     private String operatingHours; // e.g., JSON or freeform
 
     @Column(columnDefinition = "text")

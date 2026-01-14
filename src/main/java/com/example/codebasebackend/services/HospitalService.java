@@ -16,4 +16,11 @@ public interface HospitalService {
     Hospital updateHospital(Long id, Hospital hospital);
 
     void deleteHospital(Long id);
+    
+    /**
+     * Get hospitals by facility
+     * @param facility The facility to search for (e.g., "LABORATORY", "PHARMACY", "ICU")
+     * @return List of hospitals that have the specified facility
+     */
+    List<Hospital> getHospitalsByFacility(String facility);
 }

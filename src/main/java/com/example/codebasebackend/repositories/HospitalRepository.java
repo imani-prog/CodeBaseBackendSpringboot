@@ -12,4 +12,11 @@ public interface HospitalRepository extends JpaRepository<Hospital, Long> {
     List<Hospital> findByNameContainingIgnoreCase(String name);
     List<Hospital> findByCityIgnoreCase(String city);
     List<Hospital> findByStatus(Hospital.HospitalStatus status);
+    
+    /**
+     * Find hospitals that have a specific facility
+     * @param facility The facility to search for (e.g., "LABORATORY", "PHARMACY")
+     * @return List of hospitals that have the specified facility in their facilities string
+     */
+    List<Hospital> findByFacilitiesContaining(String facility);
 }

@@ -62,4 +62,11 @@ public class HospitalController {
     public ResponseEntity<Hospital> getHospitalByCode(@PathVariable String code) {
         return ResponseEntity.ok(hospitalService.getHospitalByCode(code));
     }
+
+    // Get hospitals by facility
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "Hospital", includeArgs = true)
+    @GetMapping("/by-facility/{facility}")
+    public ResponseEntity<List<Hospital>> getHospitalsByFacility(@PathVariable String facility) {
+        return ResponseEntity.ok(hospitalService.getHospitalsByFacility(facility));
+    }
 }

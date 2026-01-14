@@ -100,6 +100,7 @@ public class HospitalServiceImplementation implements HospitalService {
         existing.setNumberOfAmbulances(patch.getNumberOfAmbulances());
         existing.setServicesOffered(patch.getServicesOffered());
         existing.setDepartments(patch.getDepartments());
+        existing.setFacilities(patch.getFacilities());
         existing.setOperatingHours(patch.getOperatingHours());
         existing.setAcceptedInsurance(patch.getAcceptedInsurance());
         existing.setStatus(patch.getStatus());
@@ -113,5 +114,14 @@ public class HospitalServiceImplementation implements HospitalService {
         if (id == null) throw new ResponseStatusException(BAD_REQUEST, "id required");
         if (!hospitalRepo.existsById(id)) throw new ResponseStatusException(NOT_FOUND, "Hospital not found");
         hospitalRepo.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Hospital> getHospitalsByFacility(String facility) {
+        if (facility == null || facility.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "facility parameter required");
+        }
+        return hospitalRepo.findByFacilitiesContaining(facility);
     }
 }
