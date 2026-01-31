@@ -9,12 +9,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
-@Entity
 @AllArgsConstructor
 @jakarta.persistence.Entity
 @Table(name = "ambulance_dispatches",
@@ -24,7 +24,9 @@ import java.time.OffsetDateTime;
                 @Index(name = "idx_dispatch_priority", columnList = "priority"),
                 @Index(name = "idx_dispatch_request_time", columnList = "requestTime"),
                 @Index(name = "idx_dispatch_hospital", columnList = "hospital_id"),
-                @Index(name = "idx_dispatch_patient", columnList = "patient_id")
+                @Index(name = "idx_dispatch_patient", columnList = "patient_id"),
+                @Index(name = "idx_dispatch_patient_name", columnList = "patient_name"),
+                @Index(name = "idx_dispatch_estimated_response", columnList = "estimated_response_time")
         },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_dispatch_incident_id", columnNames = {"incidentId"})
@@ -127,6 +129,49 @@ public class AmbulanceDispatch {
     @JoinColumn(name = "patient_id")
     private Patient patient;
 
+    // ==================== PATIENT INFORMATION (when Patient entity not available) ====================
+    @Column(name = "patient_name", length = 120)
+    private String patientName;
+
+    @Column(name = "patient_age")
+    private Integer patientAge;
+
+    @Column(name = "patient_gender", length = 20)
+    private String patientGender;
+
+    @Column(name = "patient_condition", columnDefinition = "text")
+    private String patientCondition;
+
+    // ==================== SPECIAL REQUIREMENTS ====================
+    @Column(name = "requires_icu")
+    @Builder.Default
+    private Boolean requiresICU = false;
+
+    @Column(name = "requires_oxygen")
+    @Builder.Default
+    private Boolean requiresOxygen = false;
+
+    @Column(name = "requires_stretcher")
+    @Builder.Default
+    private Boolean requiresStretcher = false;
+
+    // ==================== ESTIMATES & METRICS ====================
+    @Column(name = "estimated_response_time", length = 50)
+    private String estimatedResponseTime; // e.g., "8.5 minutes"
+
+    @Column(name = "estimated_distance", precision = 10, scale = 2)
+    private BigDecimal estimatedDistance; // in kilometers
+
+    @Column(name = "actual_response_time_minutes")
+    private Integer actualResponseTimeMinutes;
+
+    @Column(name = "actual_distance", precision = 10, scale = 2)
+    private BigDecimal actualDistance;
+
+    // ==================== ADDITIONAL INSTRUCTIONS ====================
+    @Column(name = "special_instructions", columnDefinition = "text")
+    private String specialInstructions;
+
     // Ambulance information
     @ManyToOne
     @JoinColumn(name = "ambulance_id", nullable = false)
@@ -170,6 +215,18 @@ public class AmbulanceDispatch {
         if (status == null) status = DispatchStatus.REQUESTED;
         if (priority == null) priority = DispatchPriority.MEDIUM;
         if (requestTime == null) requestTime = OffsetDateTime.now();
+
+        // Auto-generate incident ID if not provided
+        if (incidentId == null || incidentId.isEmpty()) {
+            incidentId = generateIncidentId();
+        }
+    }
+
+    private String generateIncidentId() {
+        // Format: EMG-YYYYMMDD-HHMMSS-XXX
+        String timestamp = OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+        String random = String.format("%03d", (int)(Math.random() * 1000));
+        return "EMG-" + timestamp + "-" + random;
     }
 
     public enum DispatchStatus {
