@@ -3,9 +3,12 @@ package com.example.codebasebackend.controllers;
 import com.example.codebasebackend.Entities.Appointment;
 import com.example.codebasebackend.dto.AppointmentRequest;
 import com.example.codebasebackend.dto.AppointmentResponse;
+import com.example.codebasebackend.dto.CancelRequest;
+import com.example.codebasebackend.dto.RescheduleRequest;
 import com.example.codebasebackend.services.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -63,5 +66,64 @@ public class AppointmentController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
         return ResponseEntity.ok(appointmentService.listInRange(from, to));
+    }
+
+
+    @GetMapping
+    public ResponseEntity<List<AppointmentResponse>> getAll() {
+        return ResponseEntity.ok(appointmentService.listAll());
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Page<AppointmentResponse>> search(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String searchTerm,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return ResponseEntity.ok(
+            appointmentService.searchAppointments(status, type, searchTerm, page, size)
+        );
+    }
+
+
+    @PatchMapping("/{id}/check-in")
+    public ResponseEntity<AppointmentResponse> checkIn(@PathVariable Long id) {
+        return ResponseEntity.ok(appointmentService.checkIn(id));
+    }
+
+
+    @PatchMapping("/{id}/check-out")
+    public ResponseEntity<AppointmentResponse> checkOut(@PathVariable Long id) {
+        return ResponseEntity.ok(appointmentService.checkOut(id));
+    }
+
+
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<AppointmentResponse> cancel(
+            @PathVariable Long id,
+            @RequestBody(required = false) CancelRequest request) {
+        String reason = request != null ? request.getReason() : null;
+        return ResponseEntity.ok(appointmentService.cancel(id, reason));
+    }
+
+    @PatchMapping("/{id}/reschedule")
+    public ResponseEntity<AppointmentResponse> reschedule(
+            @PathVariable Long id,
+            @Valid @RequestBody RescheduleRequest request) {
+        return ResponseEntity.ok(
+            appointmentService.reschedule(
+                id,
+                request.getNewStart(),
+                request.getNewEnd()
+            )
+        );
+    }
+
+
+    @PatchMapping("/{id}/confirm")
+    public ResponseEntity<AppointmentResponse> confirm(@PathVariable Long id) {
+        return ResponseEntity.ok(appointmentService.confirm(id));
     }
 }

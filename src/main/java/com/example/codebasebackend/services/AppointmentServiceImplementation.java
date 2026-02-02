@@ -9,6 +9,10 @@ import com.example.codebasebackend.repositories.AppointmentRepository;
 import com.example.codebasebackend.repositories.HospitalRepository;
 import com.example.codebasebackend.repositories.PatientRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -147,6 +151,146 @@ public class AppointmentServiceImplementation implements AppointmentService {
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<AppointmentResponse> listAll() {
+        return appointmentRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AppointmentResponse> searchAppointments(String status, String type, String searchTerm, int page, int size) {
+        Appointment.AppointmentStatus statusEnum = null;
+        if (status != null && !status.equalsIgnoreCase("all")) {
+            statusEnum = parseStatus(status);
+        }
+
+        Appointment.AppointmentType typeEnum = null;
+        if (type != null && !type.equalsIgnoreCase("all")) {
+            typeEnum = parseType(type);
+        }
+
+        String search = (searchTerm != null && !searchTerm.isBlank()) ? searchTerm : null;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("scheduledStart").descending());
+
+        Page<Appointment> appointments = appointmentRepository.searchAppointments(
+            statusEnum, typeEnum, search, pageable
+        );
+
+        return appointments.map(this::toResponse);
+    }
+
+    @Override
+    public AppointmentResponse checkIn(Long id) {
+        Appointment appt = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Appointment not found"));
+
+        if (appt.getCheckInTime() != null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Patient already checked in");
+        }
+
+        appt.setCheckInTime(OffsetDateTime.now());
+        appt.setStatus(Appointment.AppointmentStatus.CHECKED_IN);
+
+        Appointment saved = appointmentRepository.save(appt);
+        return toResponse(saved);
+    }
+
+    @Override
+    public AppointmentResponse checkOut(Long id) {
+        Appointment appt = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Appointment not found"));
+
+        if (appt.getCheckInTime() == null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Patient has not checked in yet");
+        }
+
+        if (appt.getCheckOutTime() != null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Patient already checked out");
+        }
+
+        appt.setCheckOutTime(OffsetDateTime.now());
+        appt.setStatus(Appointment.AppointmentStatus.COMPLETED);
+
+        Appointment saved = appointmentRepository.save(appt);
+        return toResponse(saved);
+    }
+
+    @Override
+    public AppointmentResponse cancel(Long id, String reason) {
+        Appointment appt = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Appointment not found"));
+
+        if (appt.getStatus() == Appointment.AppointmentStatus.COMPLETED) {
+            throw new ResponseStatusException(BAD_REQUEST, "Cannot cancel completed appointment");
+        }
+
+        if (appt.getStatus() == Appointment.AppointmentStatus.CANCELED) {
+            throw new ResponseStatusException(BAD_REQUEST, "Appointment already canceled");
+        }
+
+        appt.setStatus(Appointment.AppointmentStatus.CANCELED);
+
+        // Append cancellation reason to notes
+        String cancelNote = "CANCELED: " + (reason != null ? reason : "No reason provided");
+        appt.setNotes(appt.getNotes() != null
+            ? appt.getNotes() + "\n\n" + cancelNote
+            : cancelNote);
+
+        Appointment saved = appointmentRepository.save(appt);
+        return toResponse(saved);
+    }
+
+    @Override
+    public AppointmentResponse reschedule(Long id, OffsetDateTime newStart, OffsetDateTime newEnd) {
+        validateTimes(newStart, newEnd);
+
+        Appointment appt = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Appointment not found"));
+
+        if (appt.getStatus() == Appointment.AppointmentStatus.COMPLETED) {
+            throw new ResponseStatusException(BAD_REQUEST, "Cannot reschedule completed appointment");
+        }
+
+        if (appt.getStatus() == Appointment.AppointmentStatus.CANCELED) {
+            throw new ResponseStatusException(BAD_REQUEST, "Cannot reschedule canceled appointment");
+        }
+
+        // Store old times in notes for history
+        String rescheduleNote = String.format("RESCHEDULED: Original time was %s to %s",
+            appt.getScheduledStart(), appt.getScheduledEnd());
+        appt.setNotes(appt.getNotes() != null
+            ? appt.getNotes() + "\n\n" + rescheduleNote
+            : rescheduleNote);
+
+        appt.setScheduledStart(newStart);
+        appt.setScheduledEnd(newEnd);
+        appt.setStatus(Appointment.AppointmentStatus.RESCHEDULED);
+
+        Appointment saved = appointmentRepository.save(appt);
+        return toResponse(saved);
+    }
+
+    @Override
+    public AppointmentResponse confirm(Long id) {
+        Appointment appt = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Appointment not found"));
+
+        if (appt.getStatus() != Appointment.AppointmentStatus.SCHEDULED) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                "Only scheduled appointments can be confirmed");
+        }
+
+        appt.setStatus(Appointment.AppointmentStatus.CONFIRMED);
+
+        Appointment saved = appointmentRepository.save(appt);
+        return toResponse(saved);
+    }
+
     private void validateTimes(OffsetDateTime start, OffsetDateTime end) {
         if (start == null || end == null) {
             throw new ResponseStatusException(BAD_REQUEST, "scheduledStart and scheduledEnd are required");
@@ -175,20 +319,60 @@ public class AppointmentServiceImplementation implements AppointmentService {
         AppointmentResponse dto = new AppointmentResponse();
         dto.setId(a.getId());
         dto.setAppointmentCode(a.getAppointmentCode());
+
+        // Patient details
         dto.setPatientId(a.getPatient() != null ? a.getPatient().getId() : null);
+        if (a.getPatient() != null) {
+            String fullName = buildFullName(a.getPatient().getFirstName(),
+                                           a.getPatient().getMiddleName(),
+                                           a.getPatient().getLastName());
+            dto.setPatientName(fullName);
+            dto.setPatientPhone(a.getPatient().getPhone());
+            dto.setPatientEmail(a.getPatient().getEmail());
+        }
+
+        // Hospital details
         dto.setHospitalId(a.getHospital() != null ? a.getHospital().getId() : null);
+        dto.setHospitalName(a.getHospital() != null ? a.getHospital().getName() : null);
+
+        // Scheduling
         dto.setScheduledStart(a.getScheduledStart());
         dto.setScheduledEnd(a.getScheduledEnd());
         dto.setCheckInTime(a.getCheckInTime());
         dto.setCheckOutTime(a.getCheckOutTime());
+
+        // Classification
         dto.setStatus(a.getStatus() != null ? a.getStatus().name() : null);
         dto.setType(a.getType() != null ? a.getType().name() : null);
+
+        // Clinical/operational
         dto.setProviderName(a.getProviderName());
         dto.setRoom(a.getRoom());
         dto.setLocation(a.getLocation());
         dto.setReason(a.getReason());
         dto.setNotes(a.getNotes());
         dto.setReminderSent(a.getReminderSent());
+
+        // Audit fields
+        dto.setCreatedAt(a.getCreatedAt());
+        dto.setUpdatedAt(a.getUpdatedAt());
+
         return dto;
+    }
+
+    private String buildFullName(String firstName, String middleName, String lastName) {
+        StringBuilder sb = new StringBuilder();
+        if (firstName != null && !firstName.isBlank()) {
+            sb.append(firstName);
+        }
+        if (middleName != null && !middleName.isBlank()) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(middleName);
+        }
+        if (lastName != null && !lastName.isBlank()) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(lastName);
+        }
+        return sb.length() > 0 ? sb.toString() : null;
     }
 }
