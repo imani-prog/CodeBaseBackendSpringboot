@@ -34,19 +34,19 @@ public class DoctorServiceImplementation implements DoctorService {
     public DoctorResponse createDoctor(DoctorRequest request) {
         log.info("Creating doctor: {} {}", request.getFirstName(), request.getLastName());
 
-        // Check if email already exists
+
         if (doctorRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new ResponseStatusException(BAD_REQUEST,
                 "Doctor with email " + request.getEmail() + " already exists");
         }
 
-        // Check if license number already exists
+
         if (doctorRepository.findByLicenseNumber(request.getLicenseNumber()).isPresent()) {
             throw new ResponseStatusException(BAD_REQUEST,
                 "Doctor with license number " + request.getLicenseNumber() + " already exists");
         }
 
-        // Validate specialty if provided
+
         Specialty specialty = null;
         if (request.getSpecialtyId() != null) {
             specialty = specialtyRepository.findById(request.getSpecialtyId())
@@ -54,7 +54,7 @@ public class DoctorServiceImplementation implements DoctorService {
                     "Specialty not found with ID: " + request.getSpecialtyId()));
         }
 
-        // Validate hospital if provided
+
         Hospital hospital = null;
         if (request.getHospitalId() != null) {
             hospital = hospitalRepository.findById(request.getHospitalId())
@@ -62,10 +62,10 @@ public class DoctorServiceImplementation implements DoctorService {
                     "Hospital not found with ID: " + request.getHospitalId()));
         }
 
-        // Generate doctor ID
+
         String doctorId = generateDoctorId();
 
-        // Create doctor entity
+
         Doctor doctor = new Doctor();
         doctor.setDoctorId(doctorId);
         doctor.setFirstName(request.getFirstName());
@@ -136,7 +136,7 @@ public class DoctorServiceImplementation implements DoctorService {
             .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
                 "Doctor not found with ID: " + id));
 
-        // Check email uniqueness if changed
+
         if (!doctor.getEmail().equals(request.getEmail())) {
             if (doctorRepository.findByEmail(request.getEmail()).isPresent()) {
                 throw new ResponseStatusException(BAD_REQUEST,
@@ -144,7 +144,7 @@ public class DoctorServiceImplementation implements DoctorService {
             }
         }
 
-        // Check license number uniqueness if changed
+
         if (!doctor.getLicenseNumber().equals(request.getLicenseNumber())) {
             if (doctorRepository.findByLicenseNumber(request.getLicenseNumber()).isPresent()) {
                 throw new ResponseStatusException(BAD_REQUEST,
@@ -152,7 +152,7 @@ public class DoctorServiceImplementation implements DoctorService {
             }
         }
 
-        // Update specialty if provided
+
         if (request.getSpecialtyId() != null) {
             Specialty specialty = specialtyRepository.findById(request.getSpecialtyId())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
@@ -160,7 +160,7 @@ public class DoctorServiceImplementation implements DoctorService {
             doctor.setSpecialty(specialty);
         }
 
-        // Update hospital if provided
+
         if (request.getHospitalId() != null) {
             Hospital hospital = hospitalRepository.findById(request.getHospitalId())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
@@ -168,7 +168,7 @@ public class DoctorServiceImplementation implements DoctorService {
             doctor.setHospital(hospital);
         }
 
-        // Update fields
+
         doctor.setFirstName(request.getFirstName());
         doctor.setMiddleName(request.getMiddleName());
         doctor.setLastName(request.getLastName());
@@ -339,46 +339,75 @@ public class DoctorServiceImplementation implements DoctorService {
 
     // Helper Methods
     private String generateDoctorId() {
-        long count = doctorRepository.count() + 1;
-        return String.format("DOC-%03d", count);
+        // Get the highest existing doctor ID number
+        String lastDoctorId = doctorRepository.findTopByOrderByIdDesc()
+            .map(Doctor::getDoctorId)
+            .orElse("DOC-000");
+
+        // Extract the numeric part and increment
+        int lastNumber = 0;
+        if (lastDoctorId != null && lastDoctorId.startsWith("DOC-")) {
+            try {
+                lastNumber = Integer.parseInt(lastDoctorId.substring(4));
+            } catch (NumberFormatException e) {
+                log.warn("Could not parse doctor ID: {}", lastDoctorId);
+            }
+        }
+
+        // Generate new ID and ensure uniqueness
+        String newDoctorId;
+        int attempts = 0;
+        do {
+            lastNumber++;
+            newDoctorId = String.format("DOC-%03d", lastNumber);
+            attempts++;
+
+            // Safety check to prevent infinite loop
+            if (attempts > 1000) {
+                throw new ResponseStatusException(INTERNAL_SERVER_ERROR,
+                    "Unable to generate unique doctor ID after 1000 attempts");
+            }
+        } while (doctorRepository.findByDoctorId(newDoctorId).isPresent());
+
+        return newDoctorId;
     }
 
     private DoctorResponse mapToResponse(Doctor doctor) {
         return DoctorResponse.builder()
             .id(doctor.getId())
             .doctorId(doctor.getDoctorId())
-            // Personal Information
+
             .firstName(doctor.getFirstName())
             .middleName(doctor.getMiddleName())
             .lastName(doctor.getLastName())
             .fullName(doctor.getFullName())
-            // Contact
+
             .email(doctor.getEmail())
             .phone(doctor.getPhone())
             .alternativePhone(doctor.getAlternativePhone())
-            // Professional Information
+
             .licenseNumber(doctor.getLicenseNumber())
             .specialtyId(doctor.getSpecialty() != null ? doctor.getSpecialty().getId() : null)
             .specialtyName(doctor.getSpecialty() != null ? doctor.getSpecialty().getName() : null)
             .experience(doctor.getExperience())
             .qualifications(doctor.getQualifications())
             .languages(doctor.getLanguages())
-            // Rating and Performance
+
             .rating(doctor.getRating())
             .totalSessions(doctor.getTotalSessions())
             .completedSessions(doctor.getCompletedSessions())
-            // Status and Availability
+
             .status(doctor.getStatus())
             .lastStatusUpdate(doctor.getLastStatusUpdate())
             .active(doctor.getActive())
-            // Profile
+
             .photoUrl(doctor.getPhotoUrl())
             .bio(doctor.getBio())
             .location(doctor.getLocation())
-            // Hospital Association
+
             .hospitalId(doctor.getHospital() != null ? doctor.getHospital().getId() : null)
             .hospitalName(doctor.getHospital() != null ? doctor.getHospital().getName() : null)
-            // Audit
+
             .createdAt(doctor.getCreatedAt())
             .updatedAt(doctor.getUpdatedAt())
             .build();
