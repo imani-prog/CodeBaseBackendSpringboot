@@ -1,0 +1,487 @@
+{
+  "telemedicine_session_samples": {
+    "consultation_video_call": {
+      "patientId": 4,
+      "doctorId": 11,
+      "hospitalId": 1,
+      "sessionType": "CONSULTATION",
+      "platform": "VIDEO_CALL",
+      "priority": "NORMAL",
+      "startTime": "2026-02-10T14:00:00Z",
+      "plannedDuration": 30,
+      "symptoms": [
+        "High blood sugar",
+        "Fatigue",
+        "Increased thirst"
+      ],
+      "chiefComplaint": "Patient reports uncontrolled blood sugar levels for the past week",
+      "cost": 2500.00,
+      "paymentMethod": "MPESA",
+      "insuranceCovered": true,
+      "notes": "Patient has diabetes, requires medication review"
+    },
+    "emergency_audio_call": {
+      "patientId": 5,
+      "doctorId": 11,
+      "hospitalId": 2,
+      "sessionType": "EMERGENCY",
+      "platform": "AUDIO_CALL",
+      "priority": "URGENT",
+      "startTime": "2026-02-05T18:30:00Z",
+      "plannedDuration": 20,
+      "symptoms": [
+        "Chest pain",
+        "Shortness of breath",
+        "Dizziness"
+      ],
+      "chiefComplaint": "Sudden onset chest pain radiating to left arm",
+      "cost": 3500.00,
+      "paymentMethod": "INSURANCE",
+      "insuranceCovered": true,
+      "notes": "Urgent cardiology consultation required"
+    },
+    "mental_health_session": {
+      "patientId": 7,
+      "doctorId": 15,
+      "hospitalId": 3,
+      "sessionType": "MENTAL_HEALTH",
+      "platform": "VIDEO_CALL",
+      "priority": "MEDIUM",
+      "startTime": "2026-02-12T15:00:00Z",
+      "plannedDuration": 45,
+      "symptoms": [
+        "Anxiety",
+        "Panic attacks",
+        "Sleep disturbance"
+      ],
+      "chiefComplaint": "Experiencing frequent anxiety attacks affecting daily activities",
+      "cost": 3000.00,
+      "paymentMethod": "MPESA",
+      "insuranceCovered": true,
+      "notes": "First-time psychiatric consultation"
+    },
+    "follow_up_session": {
+      "patientId": 8,
+      "doctorId": 11,
+      "hospitalId": 5,
+      "sessionType": "FOLLOW_UP",
+      "platform": "AUDIO_CALL",
+      "priority": "NORMAL",
+      "startTime": "2026-02-17T08:00:00Z",
+      "plannedDuration": 20,
+      "symptoms": [
+        "Blood pressure check",
+        "Mild dizziness"
+      ],
+      "chiefComplaint": "Routine follow-up for hypertension management",
+      "cost": 1800.00,
+      "paymentMethod": "MPESA",
+      "insuranceCovered": true,
+      "notes": "Monthly BP monitoring and medication review"
+    },
+    "prescription_renewal": {
+      "patientId": 8,
+      "doctorId": 11,
+      "hospitalId": 5,
+      "sessionType": "PRESCRIPTION",
+      "platform": "VIDEO_CALL",
+      "priority": "NORMAL",
+      "startTime": "2026-02-13T09:00:00Z",
+      "plannedDuration": 15,
+      "symptoms": [
+        "None - routine prescription renewal"
+      ],
+      "chiefComplaint": "Need to renew Metformin and blood pressure medication",
+      "cost": 1000.00,
+      "paymentMethod": "INSURANCE",
+      "insuranceCovered": true,
+      "notes": "Regular prescription renewal for chronic conditions"
+    },
+    "specialist_referral": {
+      "patientId": 7,
+      "doctorId": 13,
+      "hospitalId": 3,
+      "sessionType": "SPECIALIST_REFERRAL",
+      "platform": "VIDEO_CALL",
+      "priority": "HIGH",
+      "startTime": "2026-02-16T10:00:00Z",
+      "plannedDuration": 40,
+      "symptoms": [
+        "Knee pain",
+        "Limited mobility",
+        "Swelling"
+      ],
+      "chiefComplaint": "Sports injury - knee pain after running",
+      "cost": 3500.00,
+      "paymentMethod": "INSURANCE",
+      "insuranceCovered": true,
+      "notes": "Referred by general practitioner for sports medicine consultation"
+    },
+    "dermatology_messaging": {
+      "patientId": 6,
+      "doctorId": 16,
+      "hospitalId": 1,
+      "sessionType": "CONSULTATION",
+      "platform": "MESSAGING",
+      "priority": "LOW",
+      "startTime": "2026-02-11T10:00:00Z",
+      "plannedDuration": 15,
+      "symptoms": [
+        "Skin rash",
+        "Itching",
+        "Redness"
+      ],
+      "chiefComplaint": "Persistent skin rash on arms for 3 days",
+      "cost": 1500.00,
+      "paymentMethod": "CARD",
+      "insuranceCovered": false,
+      "notes": "Dermatology consultation via messaging"
+    },
+    "pediatric_consultation": {
+      "patientId": 6,
+      "doctorId": 10,
+      "hospitalId": 1,
+      "sessionType": "FOLLOW_UP",
+      "platform": "VIDEO_CALL",
+      "priority": "NORMAL",
+      "startTime": "2026-02-14T11:00:00Z",
+      "plannedDuration": 25,
+      "symptoms": [
+        "Asthma follow-up",
+        "Wheezing improved"
+      ],
+      "chiefComplaint": "Follow-up after asthma medication adjustment last month",
+      "cost": 2000.00,
+      "paymentMethod": "MPESA",
+      "insuranceCovered": true,
+      "notes": "Review inhaler usage and breathing exercises"
+    },
+    "gastroenterology_consultation": {
+      "patientId": 4,
+      "doctorId": 18,
+      "hospitalId": 1,
+      "sessionType": "CONSULTATION",
+      "platform": "VIDEO_CALL",
+      "priority": "MEDIUM",
+      "startTime": "2026-02-15T14:30:00Z",
+      "plannedDuration": 30,
+      "symptoms": [
+        "Abdominal pain",
+        "Bloating",
+        "Irregular bowel movements"
+      ],
+      "chiefComplaint": "Persistent abdominal discomfort for two weeks",
+      "cost": 2800.00,
+      "paymentMethod": "CARD",
+      "insuranceCovered": false,
+      "notes": "Possible IBS investigation"
+    },
+    "neurosurgery_emergency": {
+      "patientId": 8,
+      "doctorId": 19,
+      "hospitalId": 1,
+      "sessionType": "EMERGENCY",
+      "platform": "VIDEO_CALL",
+      "priority": "URGENT",
+      "startTime": "2026-02-05T20:00:00Z",
+      "plannedDuration": 30,
+      "symptoms": [
+        "Severe headache",
+        "Nausea",
+        "Vision problems"
+      ],
+      "chiefComplaint": "Sudden severe headache with neurological symptoms",
+      "cost": 5000.00,
+      "paymentMethod": "INSURANCE",
+      "insuranceCovered": true,
+      "notes": "Emergency neurosurgery consultation - possible stroke"
+    },
+    "bariatric_consultation": {
+      "patientId": 8,
+      "doctorId": 14,
+      "hospitalId": 1,
+      "sessionType": "CONSULTATION",
+      "platform": "VIDEO_CALL",
+      "priority": "MEDIUM",
+      "startTime": "2026-02-18T13:00:00Z",
+      "plannedDuration": 60,
+      "symptoms": [
+        "Obesity",
+        "Diabetes",
+        "High blood pressure"
+      ],
+      "chiefComplaint": "Consultation for weight loss surgery options",
+      "cost": 4000.00,
+      "paymentMethod": "CARD",
+      "insuranceCovered": false,
+      "notes": "Initial bariatric surgery assessment"
+    },
+    "pediatric_surgery_referral": {
+      "patientId": 6,
+      "doctorId": 2,
+      "hospitalId": 1,
+      "sessionType": "SPECIALIST_REFERRAL",
+      "platform": "VIDEO_CALL",
+      "priority": "HIGH",
+      "startTime": "2026-02-19T11:30:00Z",
+      "plannedDuration": 35,
+      "symptoms": [
+        "Abdominal pain",
+        "Fever",
+        "Vomiting"
+      ],
+      "chiefComplaint": "Suspected appendicitis - referred by pediatrician",
+      "cost": 3800.00,
+      "paymentMethod": "INSURANCE",
+      "insuranceCovered": true,
+      "notes": "Urgent pediatric surgery consultation"
+    }
+  },
+  "update_session_example": {
+    "patientId": 4,
+    "doctorId": 11,
+    "hospitalId": 1,
+    "sessionType": "CONSULTATION",
+    "platform": "VIDEO_CALL",
+    "priority": "HIGH",
+    "startTime": "2026-02-10T15:00:00Z",
+    "plannedDuration": 45,
+    "symptoms": [
+      "High blood sugar",
+      "Fatigue",
+      "Increased thirst",
+      "Blurred vision"
+    ],
+    "chiefComplaint": "Patient reports uncontrolled blood sugar levels and new symptoms",
+    "cost": 3000.00,
+    "paymentMethod": "MPESA",
+    "insuranceCovered": true,
+    "notes": "Updated session - added new symptom"
+  },
+  "enums": {
+    "SessionType": [
+      "CONSULTATION",
+      "FOLLOW_UP",
+      "EMERGENCY",
+      "PRESCRIPTION",
+      "MENTAL_HEALTH",
+      "SPECIALIST_REFERRAL"
+    ],
+    "PlatformType": [
+      "VIDEO_CALL",
+      "AUDIO_CALL",
+      "MESSAGING"
+    ],
+    "Priority": [
+      "LOW",
+      "NORMAL",
+      "MEDIUM",
+      "HIGH",
+      "URGENT"
+    ],
+    "SessionStatus": [
+      "SCHEDULED",
+      "ACTIVE",
+      "PAUSED",
+      "COMPLETED",
+      "CANCELLED",
+      "TERMINATED",
+      "NO_SHOW"
+    ],
+    "PaymentMethod": [
+      "MPESA",
+      "CARD",
+      "CASH",
+      "INSURANCE",
+      "BANK_TRANSFER"
+    ]
+  },
+  "test_data": {
+    "doctors": [
+      {
+        "id": 2,
+        "name": "Dr. John Mwangi",
+        "specialty": "Pediatric Surgeon",
+        "email": "john.mwangi@example.com",
+        "phone": "+254723456789"
+      },
+      {
+        "id": 10,
+        "name": "Dr. Emily Carter",
+        "specialty": "Pediatrician",
+        "email": "emily.carter@medilink.com",
+        "phone": "+254712345678"
+      },
+      {
+        "id": 11,
+        "name": "Dr. Michael Ochieng",
+        "specialty": "Cardiologist",
+        "email": "michael.ochieng@medilink.com",
+        "phone": "+254723456789"
+      },
+      {
+        "id": 12,
+        "name": "Dr. Sarah Kamau",
+        "specialty": "Neurologist",
+        "email": "sarah.kamau@medilink.com",
+        "phone": "+254734567890"
+      },
+      {
+        "id": 13,
+        "name": "Dr. David Mwangi",
+        "specialty": "Orthopedic Surgeon",
+        "email": "david.mwangi@medilink.com",
+        "phone": "+254745678901"
+      },
+      {
+        "id": 14,
+        "name": "Dr. Grace Wanjiku",
+        "specialty": "Bariatric Surgeon",
+        "email": "grace.wanjiku@medilink.com",
+        "phone": "+254756789012"
+      },
+      {
+        "id": 15,
+        "name": "Dr. James Otieno",
+        "specialty": "Psychiatrist",
+        "email": "james.otieno@medilink.com",
+        "phone": "+254767890123"
+      },
+      {
+        "id": 16,
+        "name": "Dr. Linda Njeri",
+        "specialty": "Dermatologist",
+        "email": "linda.njeri@medilink.com",
+        "phone": "+254778901234"
+      },
+      {
+        "id": 17,
+        "name": "Dr. Robert Kariuki",
+        "specialty": "Pediatric Surgeon",
+        "email": "robert.kariuki@medilink.com",
+        "phone": "+254789012345"
+      },
+      {
+        "id": 18,
+        "name": "Dr. Patricia Mutua",
+        "specialty": "Gastroenterologist",
+        "email": "patricia.mutua@medilink.com",
+        "phone": "+254790123456"
+      },
+      {
+        "id": 19,
+        "name": "Dr. Daniel Kipchoge",
+        "specialty": "Neurosurgeon",
+        "email": "daniel.kipchoge@medilink.com",
+        "phone": "+254701234567"
+      }
+    ],
+    "patients": [
+      {
+        "id": 4,
+        "name": "John Mwangi",
+        "gender": "MALE",
+        "conditions": "Diabetes",
+        "city": "Nairobi",
+        "phone": "+254700123456",
+        "email": "john.mwangi@example.com",
+        "bloodGroup": "A_POS",
+        "allergies": "Peanuts, Penicillin"
+      },
+      {
+        "id": 5,
+        "name": "Aisha Ali",
+        "gender": "FEMALE",
+        "conditions": "Hypertension",
+        "city": "Mombasa",
+        "phone": "+254701223344",
+        "email": "aisha.ali@example.com",
+        "bloodGroup": "O_POS",
+        "allergies": "Seafood"
+      },
+      {
+        "id": 6,
+        "name": "Otieno Ouma",
+        "gender": "MALE",
+        "conditions": "Asthma",
+        "city": "Kisumu",
+        "phone": "+254720334455",
+        "email": "otieno.ouma@example.com",
+        "bloodGroup": "B_POS",
+        "allergies": "None"
+      },
+      {
+        "id": 7,
+        "name": "Chebet Koech",
+        "gender": "FEMALE",
+        "conditions": "Asthma",
+        "city": "Eldoret",
+        "phone": "+254728445566",
+        "email": "chebet.koech@example.com",
+        "bloodGroup": "AB_NEG",
+        "allergies": "Dust"
+      },
+      {
+        "id": 8,
+        "name": "Wanjiru Kamau",
+        "gender": "FEMALE",
+        "conditions": "Hypertension, Diabetes",
+        "city": "Nakuru",
+        "phone": "+254733667788",
+        "email": "wanjiru.kamau@example.com",
+        "bloodGroup": "O_NEG",
+        "allergies": "Sulfa Drugs"
+      }
+    ],
+    "hospitals": [
+      {
+        "id": 1,
+        "name": "City General Hospital",
+        "type": "GENERAL",
+        "city": "Nairobi"
+      },
+      {
+        "id": 2,
+        "name": "Mombasa Coast Hospital",
+        "type": "SPECIALTY",
+        "city": "Mombasa"
+      },
+      {
+        "id": 3,
+        "name": "Eldoret Regional Hospital",
+        "type": "TEACHING",
+        "city": "Eldoret"
+      },
+      {
+        "id": 4,
+        "name": "Kisumu Lakeside Medical Center",
+        "type": "CLINIC",
+        "city": "Kisumu"
+      },
+      {
+        "id": 5,
+        "name": "Nakuru District Hospital",
+        "type": "GENERAL",
+        "city": "Nakuru"
+      }
+    ]
+  },
+  "common_workflows": {
+    "create_and_complete_session": {
+      "step1_create": "POST /api/telemedicine/sessions",
+      "step2_start": "POST /api/telemedicine/sessions/{id}/start",
+      "step3_complete": "POST /api/telemedicine/sessions/{id}/complete?diagnosis=...&prescription=...&doctorNotes=...",
+      "step4_rate": "POST /api/telemedicine/sessions/{id}/rate?rating=5&feedback=..."
+    },
+    "emergency_workflow": {
+      "step1_create_urgent": "POST /api/telemedicine/sessions (with priority=URGENT)",
+      "step2_immediate_start": "POST /api/telemedicine/sessions/{id}/start",
+      "step3_complete_or_refer": "POST /api/telemedicine/sessions/{id}/complete OR escalate to physical visit"
+    },
+    "follow_up_workflow": {
+      "step1_check_history": "GET /api/telemedicine/sessions/by-patient/{patientId}",
+      "step2_create_follow_up": "POST /api/telemedicine/sessions (with sessionType=FOLLOW_UP)",
+      "step3_reference_previous": "Include notes from previous session"
+    }
+  }
+}

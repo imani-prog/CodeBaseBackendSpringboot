@@ -40,26 +40,26 @@ public class TelemedicineSession {
 
     @NotBlank(message = "Session ID is required")
     @Column(nullable = false, unique = true, length = 20)
-    private String sessionId; // Format: TM-001, TM-002, etc.
+    private String sessionId;
 
-    // Patient Information
+
     @NotNull(message = "Patient is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    // Doctor Information
+
     @NotNull(message = "Doctor is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "doctor_id", nullable = false)
     private Doctor doctor;
 
-    // Hospital/Clinic (optional - for institutional sessions)
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hospital_id")
     private Hospital hospital;
 
-    // Session Details
+
     @NotNull(message = "Session type is required")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -80,7 +80,7 @@ public class TelemedicineSession {
     @Column(nullable = false, length = 10)
     private Priority priority = Priority.NORMAL;
 
-    // Timing
+
     @NotNull(message = "Start time is required")
     @Column(nullable = false)
     private OffsetDateTime startTime;
@@ -99,7 +99,7 @@ public class TelemedicineSession {
     @Column
     private Integer plannedDuration; // Expected duration in minutes
 
-    // Medical Information
+
     @ElementCollection
     @CollectionTable(name = "session_symptoms", joinColumns = @JoinColumn(name = "session_id"))
     @Column(name = "symptom", length = 200)
@@ -123,7 +123,7 @@ public class TelemedicineSession {
     @Column
     private OffsetDateTime followUpDate;
 
-    // Financial
+
     @NotNull(message = "Cost is required")
     @DecimalMin(value = "0.0", inclusive = true, message = "Cost must be non-negative")
     @Column(nullable = false, precision = 10, scale = 2)
@@ -138,7 +138,7 @@ public class TelemedicineSession {
     @Column(length = 50)
     private String paymentReference;
 
-    // Quality & Feedback
+
     @Min(value = 1, message = "Rating must be between 1 and 5")
     @Max(value = 5, message = "Rating must be between 1 and 5")
     @Column
@@ -147,7 +147,7 @@ public class TelemedicineSession {
     @Column(columnDefinition = "TEXT")
     private String feedback;
 
-    // Technical Details
+
     @Column(length = 200)
     private String meetingLink; // Virtual meeting room URL
 
@@ -160,7 +160,7 @@ public class TelemedicineSession {
     @Column
     private Boolean recordingEnabled = false;
 
-    // Session Metadata
+
     @Column(columnDefinition = "TEXT")
     private String cancellationReason;
 
@@ -177,7 +177,7 @@ public class TelemedicineSession {
     @Column
     private OffsetDateTime reminderSentAt;
 
-    // Audit Fields
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -190,7 +190,7 @@ public class TelemedicineSession {
     @JoinColumn(name = "created_by_user_id")
     private User createdBy;
 
-    // Helper Methods
+
     public void startSession() {
         this.status = SessionStatus.ACTIVE;
         this.actualStartTime = OffsetDateTime.now();

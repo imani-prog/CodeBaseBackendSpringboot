@@ -1,0 +1,105 @@
+### ================================================
+### QUICK TEST - EXISTING SESSIONS
+### ================================================
+### Use these to quickly test with your existing session data
+###
+
+### Test 1: Get Session TM-001 by Session ID (Should work now!)
+GET http://localhost:8080/api/telemedicine/sessions/by-session-id/TM-001
+
+###
+
+### Test 2: Get Session TM-002 by Session ID
+GET http://localhost:8080/api/telemedicine/sessions/by-session-id/TM-002
+
+###
+
+### Test 3: Get Session TM-003 by Session ID
+GET http://localhost:8080/api/telemedicine/sessions/by-session-id/TM-003
+
+###
+
+### Test 4: Get Session TM-004 by Session ID
+GET http://localhost:8080/api/telemedicine/sessions/by-session-id/TM-004
+
+###
+
+### Test 5: Get Session TM-005 by Session ID
+GET http://localhost:8080/api/telemedicine/sessions/by-session-id/TM-005
+
+###
+
+### Test 6: Get Session by ID (numeric ID)
+GET http://localhost:8080/api/telemedicine/sessions/1
+
+###
+
+### Test 7: Get Session by ID (numeric ID)
+GET http://localhost:8080/api/telemedicine/sessions/2
+
+###
+
+### Test 8: Get all sessions
+GET http://localhost:8080/api/telemedicine/sessions
+
+###
+
+### Test 9: Start Session TM-001
+POST http://localhost:8080/api/telemedicine/sessions/1/start
+
+###
+
+### Test 10: Get sessions by patient 4
+GET http://localhost:8080/api/telemedicine/sessions/by-patient/4
+
+###
+
+### Test 11: Get sessions by patient 6 (should have multiple)
+GET http://localhost:8080/api/telemedicine/sessions/by-patient/6
+
+###
+
+### Test 12: Get sessions by doctor 11 (should have multiple)
+GET http://localhost:8080/api/telemedicine/sessions/by-doctor/11
+
+###
+
+### Test 13: Get sessions by doctor 10
+GET http://localhost:8080/api/telemedicine/sessions/by-doctor/10
+
+###
+
+### Test 14: Search for "diabetes"
+GET http://localhost:8080/api/telemedicine/sessions/search?term=diabetes
+
+###
+
+### Test 15: Search for "chest pain"
+GET http://localhost:8080/api/telemedicine/sessions/search?term=chest pain
+
+###
+
+### Test 16: Get sessions by status SCHEDULED
+GET http://localhost:8080/api/telemedicine/sessions/by-status/SCHEDULED
+
+###
+
+### Test 17: Get sessions by platform VIDEO_CALL
+GET http://localhost:8080/api/telemedicine/sessions/by-platform/VIDEO_CALL
+
+###
+
+### Test 18: Get sessions by priority URGENT
+GET http://localhost:8080/api/telemedicine/sessions/by-priority/URGENT
+
+###
+
+### Test 19: Get platform overview
+GET http://localhost:8080/api/telemedicine/sessions/overview
+
+###
+
+### Test 20: Get platform stats
+GET http://localhost:8080/api/telemedicine/sessions/platform-stats
+
+###
