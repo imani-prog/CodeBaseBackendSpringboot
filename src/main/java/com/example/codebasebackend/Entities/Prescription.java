@@ -62,6 +62,7 @@ public class Prescription {
     @Column(columnDefinition = "text")
     private String warnings;
 
+    @Builder.Default
     @ElementCollection
     @CollectionTable(name = "prescription_side_effects", joinColumns = @JoinColumn(name = "prescription_id"))
     @Column(name = "side_effect", length = 180)

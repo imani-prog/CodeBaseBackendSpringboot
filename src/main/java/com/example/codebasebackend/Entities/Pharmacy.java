@@ -74,6 +74,7 @@ public class Pharmacy {
 
     private Boolean offersDelivery;
 
+    @Builder.Default
     @ElementCollection
     @CollectionTable(name = "pharmacy_services", joinColumns = @JoinColumn(name = "pharmacy_id"))
     @Column(name = "service", length = 120)
