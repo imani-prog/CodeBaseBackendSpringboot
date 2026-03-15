@@ -59,7 +59,6 @@ public class TelemedicineSession {
     @JoinColumn(name = "hospital_id")
     private Hospital hospital;
 
-
     @NotNull(message = "Session type is required")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
