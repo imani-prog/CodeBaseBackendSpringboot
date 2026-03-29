@@ -45,6 +45,7 @@ public class CorsConfig {
                 "POST",
                 "PUT",
                 "DELETE",
+                "PATCH",
                 "OPTIONS"
         ));
 

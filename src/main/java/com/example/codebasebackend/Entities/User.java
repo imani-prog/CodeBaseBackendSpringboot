@@ -37,6 +37,22 @@ public class User {
     @Column(length = 120)
     private String fullName;
 
+    @Column(length = 30)
+    private String phone;
+
+    @Column(length = 120)
+    private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private UserRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private UserStatus status;
+
+    private OffsetDateTime lastLoginAt;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -44,4 +60,10 @@ public class User {
     @UpdateTimestamp
     @Column(nullable = false)
     private OffsetDateTime updatedAt;
+
+    @PrePersist
+    void prePersist() {
+        if (role == null) role = UserRole.PATIENT;
+        if (status == null) status = UserStatus.ACTIVE;
+    }
 }
