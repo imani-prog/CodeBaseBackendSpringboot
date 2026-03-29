@@ -13,9 +13,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import jakarta.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -37,6 +40,15 @@ class CommunityHealthWorkersControllerIntegrationTest {
 
     @MockBean
     private CommunityHealthWorkersService service;
+
+    @MockBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    @MockBean
+    private EntityManagerFactory entityManagerFactory;
+
+    @MockBean
+    private DataSource dataSource;
 
     private CommunityHealthWorkerResponse testResponse;
 
@@ -186,4 +198,3 @@ class CommunityHealthWorkersControllerIntegrationTest {
                 .andExpect(jsonPath("$.avatar").value("GA"));
     }
 }
-

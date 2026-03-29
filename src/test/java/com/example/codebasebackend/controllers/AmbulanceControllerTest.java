@@ -7,9 +7,11 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
@@ -31,6 +33,12 @@ class AmbulanceControllerTest {
     // Mock DataSource to satisfy CommandLineRunner bean in main application during context load
     @MockBean
     private DataSource dataSource;
+
+    @MockBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    @MockBean
+    private EntityManagerFactory entityManagerFactory;
 
     @Test
     void postMapsVehicleNumberAndIgnoresUnknownFields() throws Exception {
