@@ -110,6 +110,10 @@ public class CommunityHealthWorkers {
     private BigDecimal rating; // Rating out of 5.0 (e.g., 4.8)
 
     // Affiliation
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "userId", unique = true)
+    private User user;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hospital_id")
     private Hospital hospital; // optional base hospital/clinic

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PatientRepository extends JpaRepository<Patient, Long> {
+    boolean existsByUserId(Long userId);
     Optional<Patient> findByEmail(String email);
     Optional<Patient> findByNationalId(String nationalId);
     List<Patient> findByLastNameIgnoreCase(String lastName);
