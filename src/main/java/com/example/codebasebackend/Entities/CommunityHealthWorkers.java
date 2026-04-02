@@ -1,5 +1,6 @@
 package com.example.codebasebackend.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -17,6 +18,7 @@ import java.time.OffsetDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @jakarta.persistence.Entity
 @Table(name = "community_health_workers",
         indexes = {
@@ -28,13 +30,13 @@ import java.time.OffsetDateTime;
         }
 )
 public class CommunityHealthWorkers {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(length = 16, unique = true)
-    private String code; // CHW001-style business id
-
+    private String code;
 
     @NotBlank
     @Column(nullable = false, length = 100)
@@ -84,39 +86,41 @@ public class CommunityHealthWorkers {
 
     // Regional Assignment
     @Column(length = 100)
-    private String region; // Regional assignment (e.g., "Nairobi", "Mombasa", "Kisumu")
+    private String region;
 
     // Workload Management
     @Column
-    private Integer assignedPatients; // Number of patients assigned to this CHW (default: 0)
+    private Integer assignedPatients;
 
     @Column
-    private LocalDate startDate; // Employment/service start date
+    private LocalDate startDate;
 
     @Column
-    private OffsetDateTime lastStatusUpdate; // Timestamp when status was last changed
+    private OffsetDateTime lastStatusUpdate;
 
     // Performance Metrics
     @Column
-    private Integer monthlyVisits; // Number of visits this month (default: 0)
+    private Integer monthlyVisits;
 
     @Column(precision = 5, scale = 2)
-    private BigDecimal successRate; // Success rate percentage (0-100)
+    private BigDecimal successRate;
 
     @Column(length = 50)
-    private String responseTime; // Average response time (e.g., "1.8hrs", "2.5hrs")
+    private String responseTime;
 
     @Column(precision = 3, scale = 2)
-    private BigDecimal rating; // Rating out of 5.0 (e.g., 4.8)
+    private BigDecimal rating;
 
     // Affiliation
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "passwordHash"})
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "userId", unique = true)
     private User user;
 
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hospital_id")
-    private Hospital hospital; // optional base hospital/clinic
+    private Hospital hospital;
 
     // Operational
     @Enumerated(EnumType.STRING)
@@ -124,7 +128,7 @@ public class CommunityHealthWorkers {
     private Status status;
 
     @Column(length = 200)
-    private String specialization; // optional e.g., maternal health
+    private String specialization;
 
     // Audit
     @CreationTimestamp
@@ -147,8 +151,6 @@ public class CommunityHealthWorkers {
 
     @PreUpdate
     void preUpdate() {
-        // Automatically update lastStatusUpdate when entity changes
-        // Status-specific tracking can be done in service layer
         if (lastStatusUpdate == null) {
             lastStatusUpdate = OffsetDateTime.now();
         }

@@ -1,6 +1,6 @@
 package com.example.codebasebackend.Entities;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -19,6 +19,7 @@ import java.time.OffsetDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @jakarta.persistence.Entity
 @Table(name = "patients",
         indexes = {
@@ -33,7 +34,7 @@ import java.time.OffsetDateTime;
         }
 )
 public class Patient {
-    // Primary key
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -117,7 +118,7 @@ public class Patient {
     @Column(length = 32)
     private String emergencyContactPhone;
 
-    // Clinical profile (free-form text; can be JSON later)
+    // Clinical profile
     @Column(columnDefinition = "text")
     private String allergies;
 
@@ -160,10 +161,12 @@ public class Patient {
     private OffsetDateTime updatedAt;
 
     // Relationships
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "passwordHash"})
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "userId", unique = true)
     private User user;
 
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hospital_id")
     private Hospital hospital;
@@ -174,7 +177,6 @@ public class Patient {
         if (gender == null) gender = Gender.UNKNOWN;
     }
 
-    // Simple enums kept here to avoid extra files and keep usage clear
     public enum Gender { MALE, FEMALE, OTHER, UNKNOWN }
     public enum BloodType { A_POS, A_NEG, B_POS, B_NEG, AB_POS, AB_NEG, O_POS, O_NEG }
     public enum PatientStatus { ACTIVE, INACTIVE, DECEASED }

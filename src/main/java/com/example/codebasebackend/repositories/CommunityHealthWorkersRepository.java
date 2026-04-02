@@ -15,6 +15,9 @@ import java.util.Optional;
 public interface CommunityHealthWorkersRepository extends JpaRepository<CommunityHealthWorkers, Long> {
 
     boolean existsByUserId(Long userId);
+    Optional<CommunityHealthWorkers> findByUserUsername(String username);
+    boolean existsByCode(String code);
+    boolean existsByEmail(String email);
 
     Optional<CommunityHealthWorkers> findByCode(String code);
 

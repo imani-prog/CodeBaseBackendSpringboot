@@ -1,10 +1,11 @@
 package com.example.codebasebackend.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.OffsetDateTime;
 
 @Getter
@@ -12,6 +13,7 @@ import java.time.OffsetDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @jakarta.persistence.Entity
 @Table(name = "users",
         indexes = {
@@ -24,6 +26,7 @@ import java.time.OffsetDateTime;
         }
 )
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,6 +43,7 @@ public class User {
     @Column(length = 30)
     private String phone;
 
+    @JsonIgnore  // never expose password hash in any API response
     @Column(length = 120)
     private String passwordHash;
 

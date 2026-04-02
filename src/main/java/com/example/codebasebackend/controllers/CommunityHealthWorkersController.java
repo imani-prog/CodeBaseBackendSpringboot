@@ -7,11 +7,14 @@ import com.example.codebasebackend.dto.CommunityHealthWorkerRequest;
 import com.example.codebasebackend.dto.CommunityHealthWorkerResponse;
 import com.example.codebasebackend.dto.LocationUpdateRequest;
 import com.example.codebasebackend.dto.PerformanceMetricsRequest;
+import com.example.codebasebackend.repositories.CommunityHealthWorkersRepository;
 import com.example.codebasebackend.services.CommunityHealthWorkersService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,26 +28,39 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 public class CommunityHealthWorkersController {
 
     private final CommunityHealthWorkersService service;
+    private final CommunityHealthWorkersRepository communityHealthWorkersRepository;
 
     @Auditable(eventType = AuditLog.EventType.CREATE, entityType = "CHW", entityIdExpression = "#result.id", includeArgs = true)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<CommunityHealthWorkerResponse> create(@Valid @RequestBody CommunityHealthWorkerRequest request) {
         return ResponseEntity.ok(service.create(request));
     }
 
+    @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
+    @GetMapping("/me")
+    public ResponseEntity<CommunityHealthWorkerResponse> getMyChwProfile(Authentication authentication) {
+        CommunityHealthWorkers chw = communityHealthWorkersRepository.findByUserUsername(authentication.getName())
+                .orElseThrow(() -> new IllegalArgumentException("CHW profile not found"));
+        return ResponseEntity.ok(service.get(chw.getId()));
+    }
+
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW", entityIdExpression = "#id")
+    @PreAuthorize("hasRole('ADMIN') or @chwSecurity.isOwner(#id, authentication)")
     @GetMapping("/{id}")
     public ResponseEntity<CommunityHealthWorkerResponse> get(@PathVariable Long id) {
         return ResponseEntity.ok(service.get(id));
     }
 
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<CommunityHealthWorkerResponse>> list() {
         return ResponseEntity.ok(service.list());
     }
 
     @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "CHW", entityIdExpression = "#id", includeArgs = true)
+    @PreAuthorize("hasRole('ADMIN') or @chwSecurity.isOwner(#id, authentication)")
     @PutMapping("/{id}")
     public ResponseEntity<CommunityHealthWorkerResponse> update(@PathVariable Long id,
                                                                 @Valid @RequestBody CommunityHealthWorkerRequest request) {
@@ -52,6 +68,7 @@ public class CommunityHealthWorkersController {
     }
 
     @Auditable(eventType = AuditLog.EventType.DELETE, entityType = "CHW", entityIdExpression = "#id")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
@@ -59,6 +76,7 @@ public class CommunityHealthWorkersController {
     }
 
     @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "CHW", entityIdExpression = "#id", includeArgs = true)
+    @PreAuthorize("hasRole('ADMIN') or @chwSecurity.isOwner(#id, authentication)")
     @PatchMapping("/{id}/location")
     public ResponseEntity<CommunityHealthWorkerResponse> updateLocation(@PathVariable Long id,
                                                                         @Valid @RequestBody LocationUpdateRequest request) {
@@ -66,6 +84,7 @@ public class CommunityHealthWorkersController {
     }
 
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
     @GetMapping("/nearest")
     public ResponseEntity<CommunityHealthWorkerResponse> nearest(
             @RequestParam(value = "lat", required = false) java.math.BigDecimal lat,
@@ -88,6 +107,7 @@ public class CommunityHealthWorkersController {
      */
     @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "CHW",
               entityIdExpression = "#id", includeArgs = true)
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/performance")
     public ResponseEntity<CommunityHealthWorkerResponse> updatePerformanceMetrics(
             @PathVariable Long id,
@@ -99,6 +119,7 @@ public class CommunityHealthWorkersController {
      * Get CHWs by region
      */
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
     @GetMapping("/by-region/{region}")
     public ResponseEntity<List<CommunityHealthWorkerResponse>> getByRegion(
             @PathVariable String region) {
@@ -109,6 +130,7 @@ public class CommunityHealthWorkersController {
      * Get CHWs by status
      */
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
     @GetMapping("/by-status/{status}")
     public ResponseEntity<List<CommunityHealthWorkerResponse>> getByStatus(
             @PathVariable String status) {
@@ -124,6 +146,7 @@ public class CommunityHealthWorkersController {
      * Get CHWs with pagination and filtering
      */
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
     @GetMapping("/search")
     public ResponseEntity<Page<CommunityHealthWorkerResponse>> search(
             @RequestParam(required = false) String region,
