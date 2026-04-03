@@ -44,8 +44,33 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
 
     @PostConstruct
     void reconcileAssignedPatientsOnStartup() {
+        reconcileHomeVisitsFromAssignments();
         for (CommunityHealthWorkers chw : chwRepository.findAll()) {
             refreshAssignedPatientsCount(chw.getId());
+        }
+    }
+
+    private void reconcileHomeVisitsFromAssignments() {
+        List<CommunityHealthWorkerAssignment> homeVisitAssignments =
+                assignmentRepository.findByAssignmentType(CommunityHealthWorkerAssignment.AssignmentType.HOME_VISIT);
+
+        for (CommunityHealthWorkerAssignment assignment : homeVisitAssignments) {
+            if (assignment.getHomeVisit() != null) {
+                continue;
+            }
+
+            HomeVisit homeVisit = new HomeVisit();
+            homeVisit.setPatient(assignment.getPatient());
+            homeVisit.setChw(assignment.getChw());
+            homeVisit.setVisitType("Home Visit");
+            homeVisit.setStatus(mapHomeVisitStatus(assignment.getStatus()));
+            homeVisit.setScheduledAt(assignment.getAssignedAt());
+            homeVisit.setLocation(assignment.getLocation());
+            homeVisit.setNotes(assignment.getNotes());
+
+            HomeVisit savedHomeVisit = homeVisitRepository.save(homeVisit);
+            assignment.setHomeVisit(savedHomeVisit);
+            assignmentRepository.save(assignment);
         }
     }
 
