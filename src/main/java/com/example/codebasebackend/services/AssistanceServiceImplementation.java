@@ -110,6 +110,7 @@ public class AssistanceServiceImplementation implements AssistanceService {
         assign.setPatient(patient);
         assign.setStatus(CommunityHealthWorkerAssignment.Status.ASSIGNED);
         assign.setAssignedAt(OffsetDateTime.now());
+        assign.setLocation(buildPickupLocation(r));
         CommunityHealthWorkerAssignment savedAssign = assignmentRepo.save(assign);
 
         // mark CHW busy
@@ -189,5 +190,21 @@ public class AssistanceServiceImplementation implements AssistanceService {
         if (s == null) return AmbulanceDispatch.DispatchPriority.MEDIUM;
         try { return AmbulanceDispatch.DispatchPriority.valueOf(s.toUpperCase()); }
         catch (IllegalArgumentException ex) { return AmbulanceDispatch.DispatchPriority.MEDIUM; }
+    }
+
+    private String buildPickupLocation(AssistanceRequest request) {
+        if (request == null) return null;
+        String line1 = request.getPickupAddressLine1();
+        String city = request.getPickupCity();
+        if (line1 != null && !line1.isBlank() && city != null && !city.isBlank()) {
+            return line1 + ", " + city;
+        }
+        if (line1 != null && !line1.isBlank()) {
+            return line1;
+        }
+        if (city != null && !city.isBlank()) {
+            return city;
+        }
+        return null;
     }
 }

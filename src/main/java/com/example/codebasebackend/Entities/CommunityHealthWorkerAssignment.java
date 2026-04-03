@@ -51,6 +51,9 @@ public class CommunityHealthWorkerAssignment {
     private OffsetDateTime startedAt;
     private OffsetDateTime completedAt;
 
+    @Column(length = 255)
+    private String location;
+
     @Column(columnDefinition = "text")
     private String notes;
 

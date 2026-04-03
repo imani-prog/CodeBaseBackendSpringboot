@@ -15,6 +15,7 @@ public class ChwAssignmentResponse {
     private OffsetDateTime completedAt;
     private Long appointmentId;
     private String sourceType;
+    private String location;
     private String notes;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -54,6 +55,9 @@ public class ChwAssignmentResponse {
 
     public String getSourceType() { return sourceType; }
     public void setSourceType(String sourceType) { this.sourceType = sourceType; }
+
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

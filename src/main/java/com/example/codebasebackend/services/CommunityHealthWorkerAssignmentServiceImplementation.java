@@ -97,6 +97,7 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         assignment.setAssignmentType(assignmentType);
         assignment.setStatus(status);
         assignment.setAppointment(appointment);
+        assignment.setLocation(request.getLocation());
         assignment.setNotes(request.getNotes());
 
         if (status == CommunityHealthWorkerAssignment.Status.IN_PROGRESS) {
@@ -174,6 +175,7 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         assignment.setChw(chw);
         assignment.setAssignmentType(parseAssignmentType(request.getAssignmentType()));
         assignment.setStatus(parseStatus(request.getStatus()));
+        assignment.setLocation(request.getLocation());
         assignment.setNotes(request.getNotes());
 
         if (request.getAppointmentId() != null) {
@@ -231,6 +233,7 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         assignment.setChw(appointment.getChw());
         assignment.setAssignmentType(CommunityHealthWorkerAssignment.AssignmentType.APPOINTMENT);
         assignment.setStatus(mapStatusFromAppointment(appointment.getStatus()));
+        assignment.setLocation(appointment.getLocation());
 
         if (assignment.getStatus() == CommunityHealthWorkerAssignment.Status.IN_PROGRESS
                 && assignment.getStartedAt() == null) {
@@ -318,6 +321,7 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         response.setStartedAt(assignment.getStartedAt());
         response.setCompletedAt(assignment.getCompletedAt());
         response.setAppointmentId(assignment.getAppointment() != null ? assignment.getAppointment().getId() : null);
+        response.setLocation(assignment.getLocation());
         response.setNotes(assignment.getNotes());
         response.setCreatedAt(assignment.getCreatedAt());
         response.setUpdatedAt(assignment.getUpdatedAt());
