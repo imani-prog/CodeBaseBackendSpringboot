@@ -22,6 +22,8 @@ public class AppointmentRequest {
     private OffsetDateTime scheduledEnd;
 
     private String providerName;
+    private String providerRole;
+    private Long providerId;
     private String room;
     private String location;
     private String reason;
@@ -43,6 +45,10 @@ public class AppointmentRequest {
     public void setScheduledEnd(OffsetDateTime scheduledEnd) { this.scheduledEnd = scheduledEnd; }
     public String getProviderName() { return providerName; }
     public void setProviderName(String providerName) { this.providerName = providerName; }
+    public String getProviderRole() { return providerRole; }
+    public void setProviderRole(String providerRole) { this.providerRole = providerRole; }
+    public Long getProviderId() { return providerId; }
+    public void setProviderId(Long providerId) { this.providerId = providerId; }
     public String getRoom() { return room; }
     public void setRoom(String room) { this.room = room; }
     public String getLocation() { return location; }

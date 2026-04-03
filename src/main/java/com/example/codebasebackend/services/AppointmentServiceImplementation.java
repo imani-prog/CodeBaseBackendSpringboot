@@ -1,11 +1,15 @@
 package com.example.codebasebackend.services;
 
 import com.example.codebasebackend.Entities.Appointment;
+import com.example.codebasebackend.Entities.CommunityHealthWorkers;
+import com.example.codebasebackend.Entities.Doctor;
 import com.example.codebasebackend.Entities.Hospital;
 import com.example.codebasebackend.Entities.Patient;
 import com.example.codebasebackend.dto.AppointmentRequest;
 import com.example.codebasebackend.dto.AppointmentResponse;
 import com.example.codebasebackend.repositories.AppointmentRepository;
+import com.example.codebasebackend.repositories.CommunityHealthWorkersRepository;
+import com.example.codebasebackend.repositories.DoctorRepository;
 import com.example.codebasebackend.repositories.HospitalRepository;
 import com.example.codebasebackend.repositories.PatientRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +37,9 @@ public class AppointmentServiceImplementation implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final HospitalRepository hospitalRepository;
+    private final CommunityHealthWorkersRepository communityHealthWorkersRepository;
+    private final DoctorRepository doctorRepository;
+    private final CommunityHealthWorkerAssignmentService assignmentService;
 
     @Override
     public AppointmentResponse create(AppointmentRequest request) {
@@ -50,6 +57,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setScheduledStart(request.getScheduledStart());
         appt.setScheduledEnd(request.getScheduledEnd());
         appt.setProviderName(request.getProviderName());
+        applyProvider(request, appt);
         appt.setRoom(request.getRoom());
         appt.setLocation(request.getLocation());
         appt.setReason(request.getReason());
@@ -65,6 +73,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
             appt.setType(parseType(request.getType()));
         }
         Appointment saved = appointmentRepository.save(appt);
+        assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
 
@@ -99,6 +108,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setScheduledStart(request.getScheduledStart());
         appt.setScheduledEnd(request.getScheduledEnd());
         appt.setProviderName(request.getProviderName());
+        applyProvider(request, appt);
         appt.setRoom(request.getRoom());
         appt.setLocation(request.getLocation());
         appt.setReason(request.getReason());
@@ -109,6 +119,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         if (request.getType() != null) appt.setType(parseType(request.getType()));
 
         Appointment saved = appointmentRepository.save(appt);
+        assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
 
@@ -117,6 +128,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         if (!appointmentRepository.existsById(id)) {
             throw new ResponseStatusException(NOT_FOUND, "Appointment not found");
         }
+        assignmentService.removeForAppointment(id);
         appointmentRepository.deleteById(id);
     }
 
@@ -197,6 +209,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setStatus(Appointment.AppointmentStatus.CHECKED_IN);
 
         Appointment saved = appointmentRepository.save(appt);
+        assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
 
@@ -217,6 +230,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setStatus(Appointment.AppointmentStatus.COMPLETED);
 
         Appointment saved = appointmentRepository.save(appt);
+        assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
 
@@ -242,6 +256,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
             : cancelNote);
 
         Appointment saved = appointmentRepository.save(appt);
+        assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
 
@@ -272,6 +287,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setStatus(Appointment.AppointmentStatus.RESCHEDULED);
 
         Appointment saved = appointmentRepository.save(appt);
+        assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
 
@@ -288,6 +304,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setStatus(Appointment.AppointmentStatus.CONFIRMED);
 
         Appointment saved = appointmentRepository.save(appt);
+        assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
 
@@ -313,6 +330,54 @@ public class AppointmentServiceImplementation implements AppointmentService {
     private Appointment.AppointmentType parseType(String s) {
         try { return Appointment.AppointmentType.valueOf(s.toUpperCase()); }
         catch (IllegalArgumentException ex) { throw new ResponseStatusException(BAD_REQUEST, "Invalid type"); }
+    }
+
+    private Appointment.ProviderRole parseProviderRole(String s) {
+        try { return Appointment.ProviderRole.valueOf(s.toUpperCase()); }
+        catch (IllegalArgumentException ex) { throw new ResponseStatusException(BAD_REQUEST, "Invalid providerRole"); }
+    }
+
+    private void applyProvider(AppointmentRequest request, Appointment appointment) {
+        if (request.getProviderRole() == null || request.getProviderRole().isBlank()) {
+            appointment.setProviderRole(null);
+            appointment.setChw(null);
+            appointment.setDoctor(null);
+            return;
+        }
+
+        Appointment.ProviderRole providerRole = parseProviderRole(request.getProviderRole());
+        appointment.setProviderRole(providerRole);
+
+        if (providerRole == Appointment.ProviderRole.CHW) {
+            if (request.getProviderId() == null) {
+                throw new ResponseStatusException(BAD_REQUEST, "providerId is required when providerRole is CHW");
+            }
+            CommunityHealthWorkers chw = communityHealthWorkersRepository.findById(request.getProviderId())
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "CHW not found"));
+            appointment.setChw(chw);
+            appointment.setDoctor(null);
+            if (request.getProviderName() == null || request.getProviderName().isBlank()) {
+                appointment.setProviderName(buildChwName(chw));
+            }
+            return;
+        }
+
+        if (providerRole == Appointment.ProviderRole.DOCTOR) {
+            if (request.getProviderId() == null) {
+                throw new ResponseStatusException(BAD_REQUEST, "providerId is required when providerRole is DOCTOR");
+            }
+            Doctor doctor = doctorRepository.findById(request.getProviderId())
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Doctor not found"));
+            appointment.setDoctor(doctor);
+            appointment.setChw(null);
+            if (request.getProviderName() == null || request.getProviderName().isBlank()) {
+                appointment.setProviderName(doctor.getFullName());
+            }
+            return;
+        }
+
+        appointment.setChw(null);
+        appointment.setDoctor(null);
     }
 
     private AppointmentResponse toResponse(Appointment a) {
@@ -344,6 +409,12 @@ public class AppointmentServiceImplementation implements AppointmentService {
         // Classification
         dto.setStatus(a.getStatus() != null ? a.getStatus().name() : null);
         dto.setType(a.getType() != null ? a.getType().name() : null);
+        dto.setProviderRole(a.getProviderRole() != null ? a.getProviderRole().name() : null);
+        if (a.getProviderRole() == Appointment.ProviderRole.CHW && a.getChw() != null) {
+            dto.setProviderId(a.getChw().getId());
+        } else if (a.getProviderRole() == Appointment.ProviderRole.DOCTOR && a.getDoctor() != null) {
+            dto.setProviderId(a.getDoctor().getId());
+        }
 
         // Clinical/operational
         dto.setProviderName(a.getProviderName());
@@ -352,6 +423,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         dto.setReason(a.getReason());
         dto.setNotes(a.getNotes());
         dto.setReminderSent(a.getReminderSent());
+        dto.setScheduledAt(a.getScheduledStart());
 
         // Audit fields
         dto.setCreatedAt(a.getCreatedAt());
@@ -374,5 +446,21 @@ public class AppointmentServiceImplementation implements AppointmentService {
             sb.append(lastName);
         }
         return sb.length() > 0 ? sb.toString() : null;
+    }
+
+    private String buildChwName(CommunityHealthWorkers chw) {
+        StringBuilder sb = new StringBuilder();
+        if (chw.getFirstName() != null && !chw.getFirstName().isBlank()) {
+            sb.append(chw.getFirstName());
+        }
+        if (chw.getMiddleName() != null && !chw.getMiddleName().isBlank()) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(chw.getMiddleName());
+        }
+        if (chw.getLastName() != null && !chw.getLastName().isBlank()) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(chw.getLastName());
+        }
+        return sb.toString();
     }
 }

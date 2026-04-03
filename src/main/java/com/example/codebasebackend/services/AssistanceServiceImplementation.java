@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -113,6 +114,14 @@ public class AssistanceServiceImplementation implements AssistanceService {
 
         // mark CHW busy
         chw.setStatus(CommunityHealthWorkers.Status.BUSY);
+        long activeAssignments = assignmentRepo.countByChwIdAndStatusIn(
+                chw.getId(),
+                EnumSet.of(
+                        CommunityHealthWorkerAssignment.Status.ASSIGNED,
+                        CommunityHealthWorkerAssignment.Status.IN_PROGRESS
+                )
+        );
+        chw.setAssignedPatients(Math.toIntExact(activeAssignments));
         chwRepo.save(chw);
 
         AssistanceResponse response = new AssistanceResponse();

@@ -4,10 +4,18 @@ import com.example.codebasebackend.Entities.CommunityHealthWorkerAssignment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Collection;
 
 public interface CommunityHealthWorkerAssignmentRepository extends JpaRepository<CommunityHealthWorkerAssignment, Long> {
     List<CommunityHealthWorkerAssignment> findByPatientId(Long patientId);
     List<CommunityHealthWorkerAssignment> findByChwId(Long chwId);
     List<CommunityHealthWorkerAssignment> findByStatus(CommunityHealthWorkerAssignment.Status status);
+    List<CommunityHealthWorkerAssignment> findByAssignmentType(CommunityHealthWorkerAssignment.AssignmentType assignmentType);
+    List<CommunityHealthWorkerAssignment> findByPatientIdOrderByAssignedAtDesc(Long patientId);
+    List<CommunityHealthWorkerAssignment> findByChwIdOrderByAssignedAtDesc(Long chwId);
+    Optional<CommunityHealthWorkerAssignment> findByAppointmentId(Long appointmentId);
+    void deleteByAppointmentId(Long appointmentId);
+    long countByChwIdAndStatusIn(Long chwId, Collection<CommunityHealthWorkerAssignment.Status> statuses);
 }
 

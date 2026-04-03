@@ -23,7 +23,10 @@ import java.util.Objects;
                 @Index(name = "idx_appt_status", columnList = "status"),
                 @Index(name = "idx_appt_start_time", columnList = "scheduledStart"),
                 @Index(name = "idx_appt_patient", columnList = "patient_id"),
-                @Index(name = "idx_appt_hospital", columnList = "hospital_id")
+                @Index(name = "idx_appt_hospital", columnList = "hospital_id"),
+                @Index(name = "idx_appt_provider_role", columnList = "providerRole"),
+                @Index(name = "idx_appt_chw", columnList = "chw_id"),
+                @Index(name = "idx_appt_doctor", columnList = "doctor_id")
         },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_appt_code", columnNames = {"appointmentCode"})
@@ -48,6 +51,14 @@ public class Appointment {
     @JoinColumn(name = "hospital_id")
     private Hospital hospital;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chw_id")
+    private CommunityHealthWorkers chw;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "doctor_id")
+    private Doctor doctor;
+
     // Scheduling
     @NotNull
     @FutureOrPresent(message = "scheduledStart must be in the present or future")
@@ -70,6 +81,10 @@ public class Appointment {
     @Enumerated(EnumType.STRING)
     @Column(length = 24)
     private AppointmentType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private ProviderRole providerRole;
 
     // Clinical/operational
     @Column(length = 150)
@@ -109,4 +124,5 @@ public class Appointment {
 
     public enum AppointmentStatus { SCHEDULED, CONFIRMED, CHECKED_IN, IN_PROGRESS, COMPLETED, CANCELED, NO_SHOW, RESCHEDULED }
     public enum AppointmentType { CONSULTATION, FOLLOW_UP, SURGERY, LAB_TEST, IMAGING, VACCINATION, TELEHEALTH, OTHER }
+    public enum ProviderRole { CHW, DOCTOR, OTHER }
 }

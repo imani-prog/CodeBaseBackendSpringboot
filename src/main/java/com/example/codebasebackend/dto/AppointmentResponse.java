@@ -18,11 +18,14 @@ public class AppointmentResponse {
     private String status;
     private String type;
     private String providerName;
+    private String providerRole;
+    private Long providerId;
     private String room;
     private String location;
     private String reason;
     private String notes;
     private Boolean reminderSent;
+    private OffsetDateTime scheduledAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -56,6 +59,10 @@ public class AppointmentResponse {
     public void setType(String type) { this.type = type; }
     public String getProviderName() { return providerName; }
     public void setProviderName(String providerName) { this.providerName = providerName; }
+    public String getProviderRole() { return providerRole; }
+    public void setProviderRole(String providerRole) { this.providerRole = providerRole; }
+    public Long getProviderId() { return providerId; }
+    public void setProviderId(Long providerId) { this.providerId = providerId; }
     public String getRoom() { return room; }
     public void setRoom(String room) { this.room = room; }
     public String getLocation() { return location; }
@@ -66,6 +73,8 @@ public class AppointmentResponse {
     public void setNotes(String notes) { this.notes = notes; }
     public Boolean getReminderSent() { return reminderSent; }
     public void setReminderSent(Boolean reminderSent) { this.reminderSent = reminderSent; }
+    public OffsetDateTime getScheduledAt() { return scheduledAt; }
+    public void setScheduledAt(OffsetDateTime scheduledAt) { this.scheduledAt = scheduledAt; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
