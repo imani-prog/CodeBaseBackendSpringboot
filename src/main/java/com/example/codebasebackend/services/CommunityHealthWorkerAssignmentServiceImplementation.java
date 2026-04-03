@@ -3,6 +3,7 @@ package com.example.codebasebackend.services;
 import com.example.codebasebackend.Entities.Appointment;
 import com.example.codebasebackend.Entities.CommunityHealthWorkerAssignment;
 import com.example.codebasebackend.Entities.CommunityHealthWorkers;
+import com.example.codebasebackend.Entities.HomeVisit;
 import com.example.codebasebackend.Entities.Patient;
 import com.example.codebasebackend.dto.ChwAssignmentReassignRequest;
 import com.example.codebasebackend.dto.ChwAssignmentRequest;
@@ -10,6 +11,7 @@ import com.example.codebasebackend.dto.ChwAssignmentResponse;
 import com.example.codebasebackend.repositories.AppointmentRepository;
 import com.example.codebasebackend.repositories.CommunityHealthWorkerAssignmentRepository;
 import com.example.codebasebackend.repositories.CommunityHealthWorkersRepository;
+import com.example.codebasebackend.repositories.HomeVisitRepository;
 import com.example.codebasebackend.repositories.PatientRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
     private final PatientRepository patientRepository;
     private final CommunityHealthWorkersRepository chwRepository;
     private final AppointmentRepository appointmentRepository;
+    private final HomeVisitRepository homeVisitRepository;
 
     @PostConstruct
     void reconcileAssignedPatientsOnStartup() {
@@ -87,6 +90,12 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
                     .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Appointment not found"));
         }
 
+        HomeVisit homeVisit = null;
+        if (request.getHomeVisitId() != null) {
+            homeVisit = homeVisitRepository.findById(request.getHomeVisitId())
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Home visit not found"));
+        }
+
         if (assignmentType == CommunityHealthWorkerAssignment.AssignmentType.APPOINTMENT && appointment == null) {
             throw new ResponseStatusException(BAD_REQUEST, "appointmentId is required for APPOINTMENT assignments");
         }
@@ -97,6 +106,7 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         assignment.setAssignmentType(assignmentType);
         assignment.setStatus(status);
         assignment.setAppointment(appointment);
+        assignment.setHomeVisit(homeVisit);
         assignment.setLocation(request.getLocation());
         assignment.setNotes(request.getNotes());
 
@@ -109,6 +119,13 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         }
 
         CommunityHealthWorkerAssignment saved = assignmentRepository.save(assignment);
+        if (assignmentType == CommunityHealthWorkerAssignment.AssignmentType.HOME_VISIT) {
+            HomeVisit syncedHomeVisit = upsertHomeVisitForAssignment(saved, request);
+            if (saved.getHomeVisit() == null || !saved.getHomeVisit().getId().equals(syncedHomeVisit.getId())) {
+                saved.setHomeVisit(syncedHomeVisit);
+                saved = assignmentRepository.save(saved);
+            }
+        }
         refreshAssignedPatientsCount(chw.getId());
         return toResponse(saved);
     }
@@ -129,6 +146,9 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         }
 
         CommunityHealthWorkerAssignment saved = assignmentRepository.save(assignment);
+        if (saved.getHomeVisit() != null) {
+            syncHomeVisitFromAssignment(saved, null);
+        }
         if (saved.getChw() != null) {
             refreshAssignedPatientsCount(saved.getChw().getId());
         }
@@ -152,6 +172,9 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         }
 
         CommunityHealthWorkerAssignment saved = assignmentRepository.save(assignment);
+        if (saved.getHomeVisit() != null) {
+            syncHomeVisitFromAssignment(saved, null);
+        }
         if (previousChwId != null) {
             refreshAssignedPatientsCount(previousChwId);
         }
@@ -175,6 +198,13 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         assignment.setChw(chw);
         assignment.setAssignmentType(parseAssignmentType(request.getAssignmentType()));
         assignment.setStatus(parseStatus(request.getStatus()));
+        if (request.getHomeVisitId() != null) {
+            HomeVisit homeVisit = homeVisitRepository.findById(request.getHomeVisitId())
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Home visit not found"));
+            assignment.setHomeVisit(homeVisit);
+        } else {
+            assignment.setHomeVisit(null);
+        }
         assignment.setLocation(request.getLocation());
         assignment.setNotes(request.getNotes());
 
@@ -187,6 +217,13 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         }
 
         CommunityHealthWorkerAssignment saved = assignmentRepository.save(assignment);
+        if (saved.getAssignmentType() == CommunityHealthWorkerAssignment.AssignmentType.HOME_VISIT) {
+            HomeVisit syncedHomeVisit = upsertHomeVisitForAssignment(saved, request);
+            if (saved.getHomeVisit() == null || !saved.getHomeVisit().getId().equals(syncedHomeVisit.getId())) {
+                saved.setHomeVisit(syncedHomeVisit);
+                saved = assignmentRepository.save(saved);
+            }
+        }
         if (previousChwId != null) {
             refreshAssignedPatientsCount(previousChwId);
         }
@@ -272,6 +309,69 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         chwRepository.save(chw);
     }
 
+    private HomeVisit upsertHomeVisitForAssignment(CommunityHealthWorkerAssignment assignment, ChwAssignmentRequest request) {
+        HomeVisit homeVisit = assignment.getHomeVisit();
+        if (homeVisit == null) {
+            if (request.getHomeVisitId() != null) {
+                homeVisit = homeVisitRepository.findById(request.getHomeVisitId())
+                        .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Home visit not found"));
+            } else {
+                homeVisit = new HomeVisit();
+            }
+        }
+
+        homeVisit.setPatient(assignment.getPatient());
+        homeVisit.setChw(assignment.getChw());
+        if (request.getVisitType() != null) homeVisit.setVisitType(request.getVisitType());
+        if (request.getPriority() != null && !request.getPriority().isBlank()) {
+            homeVisit.setPriority(parseHomeVisitPriority(request.getPriority()));
+        }
+        if (request.getScheduledAt() != null) homeVisit.setScheduledAt(request.getScheduledAt());
+        homeVisit.setStatus(mapHomeVisitStatus(assignment.getStatus()));
+        homeVisit.setLocation(assignment.getLocation());
+        homeVisit.setNotes(assignment.getNotes());
+
+        return homeVisitRepository.save(homeVisit);
+    }
+
+    private void syncHomeVisitFromAssignment(CommunityHealthWorkerAssignment assignment, ChwAssignmentRequest request) {
+        if (assignment.getAssignmentType() != CommunityHealthWorkerAssignment.AssignmentType.HOME_VISIT) return;
+
+        HomeVisit homeVisit = assignment.getHomeVisit();
+        if (homeVisit == null) {
+            if (request == null) return;
+            homeVisit = upsertHomeVisitForAssignment(assignment, request);
+            assignment.setHomeVisit(homeVisit);
+            assignmentRepository.save(assignment);
+            return;
+        }
+
+        homeVisit.setPatient(assignment.getPatient());
+        homeVisit.setChw(assignment.getChw());
+        homeVisit.setStatus(mapHomeVisitStatus(assignment.getStatus()));
+        homeVisit.setLocation(assignment.getLocation());
+        homeVisit.setNotes(assignment.getNotes());
+        homeVisitRepository.save(homeVisit);
+    }
+
+    private HomeVisit.Status mapHomeVisitStatus(CommunityHealthWorkerAssignment.Status status) {
+        if (status == null) return HomeVisit.Status.SCHEDULED;
+        return switch (status) {
+            case IN_PROGRESS -> HomeVisit.Status.IN_PROGRESS;
+            case COMPLETED -> HomeVisit.Status.COMPLETED;
+            case CANCELED -> HomeVisit.Status.CANCELED;
+            default -> HomeVisit.Status.SCHEDULED;
+        };
+    }
+
+    private HomeVisit.Priority parseHomeVisitPriority(String raw) {
+        try {
+            return HomeVisit.Priority.valueOf(raw.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(BAD_REQUEST, "Invalid home visit priority");
+        }
+    }
+
     private CommunityHealthWorkerAssignment.Status mapStatusFromAppointment(Appointment.AppointmentStatus status) {
         if (status == null) return CommunityHealthWorkerAssignment.Status.ASSIGNED;
         return switch (status) {
@@ -321,6 +421,11 @@ public class CommunityHealthWorkerAssignmentServiceImplementation implements Com
         response.setStartedAt(assignment.getStartedAt());
         response.setCompletedAt(assignment.getCompletedAt());
         response.setAppointmentId(assignment.getAppointment() != null ? assignment.getAppointment().getId() : null);
+        response.setHomeVisitId(assignment.getHomeVisit() != null ? assignment.getHomeVisit().getId() : null);
+        response.setScheduledAt(assignment.getHomeVisit() != null ? assignment.getHomeVisit().getScheduledAt() : null);
+        response.setVisitType(assignment.getHomeVisit() != null ? assignment.getHomeVisit().getVisitType() : null);
+        response.setPriority(assignment.getHomeVisit() != null && assignment.getHomeVisit().getPriority() != null
+                ? assignment.getHomeVisit().getPriority().name() : null);
         response.setLocation(assignment.getLocation());
         response.setNotes(assignment.getNotes());
         response.setCreatedAt(assignment.getCreatedAt());

@@ -1,24 +1,19 @@
 package com.example.codebasebackend.dto;
 
-import jakarta.validation.constraints.NotNull;
-
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-public class ChwAssignmentRequest {
-    @NotNull
+public class HomeVisitRequest {
     private Long patientId;
-
-    @NotNull
     private Long chwId;
-
-    private String assignmentType;
-    private String status;
-    private Long appointmentId;
-    private Long homeVisitId;
-    private OffsetDateTime scheduledAt;
     private String visitType;
+    private String status;
     private String priority;
+    private OffsetDateTime scheduledAt;
     private String location;
+    private BigDecimal latitude;
+    private BigDecimal longitude;
+    private String reason;
     private String notes;
 
     public Long getPatientId() { return patientId; }
@@ -27,29 +22,29 @@ public class ChwAssignmentRequest {
     public Long getChwId() { return chwId; }
     public void setChwId(Long chwId) { this.chwId = chwId; }
 
-    public String getAssignmentType() { return assignmentType; }
-    public void setAssignmentType(String assignmentType) { this.assignmentType = assignmentType; }
+    public String getVisitType() { return visitType; }
+    public void setVisitType(String visitType) { this.visitType = visitType; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public Long getAppointmentId() { return appointmentId; }
-    public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
-
-    public Long getHomeVisitId() { return homeVisitId; }
-    public void setHomeVisitId(Long homeVisitId) { this.homeVisitId = homeVisitId; }
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
 
     public OffsetDateTime getScheduledAt() { return scheduledAt; }
     public void setScheduledAt(OffsetDateTime scheduledAt) { this.scheduledAt = scheduledAt; }
 
-    public String getVisitType() { return visitType; }
-    public void setVisitType(String visitType) { this.visitType = visitType; }
-
-    public String getPriority() { return priority; }
-    public void setPriority(String priority) { this.priority = priority; }
-
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
+
+    public BigDecimal getLatitude() { return latitude; }
+    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
+
+    public BigDecimal getLongitude() { return longitude; }
+    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
+
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

@@ -15,7 +15,9 @@ public interface CommunityHealthWorkerAssignmentRepository extends JpaRepository
     List<CommunityHealthWorkerAssignment> findByPatientIdOrderByAssignedAtDesc(Long patientId);
     List<CommunityHealthWorkerAssignment> findByChwIdOrderByAssignedAtDesc(Long chwId);
     Optional<CommunityHealthWorkerAssignment> findByAppointmentId(Long appointmentId);
+    Optional<CommunityHealthWorkerAssignment> findByHomeVisitId(Long homeVisitId);
     void deleteByAppointmentId(Long appointmentId);
+    void deleteByHomeVisitId(Long homeVisitId);
     long countByChwIdAndStatusIn(Long chwId, Collection<CommunityHealthWorkerAssignment.Status> statuses);
 }
 

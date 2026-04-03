@@ -19,7 +19,8 @@ import java.time.OffsetDateTime;
                 @Index(name = "idx_chw_assignment_patient", columnList = "patient_id"),
                 @Index(name = "idx_chw_assignment_chw", columnList = "chw_id"),
                 @Index(name = "idx_chw_assignment_type", columnList = "assignmentType"),
-                @Index(name = "idx_chw_assignment_appointment", columnList = "appointment_id")
+                @Index(name = "idx_chw_assignment_appointment", columnList = "appointment_id"),
+                @Index(name = "idx_chw_assignment_home_visit", columnList = "home_visit_id")
         }
 )
 public class CommunityHealthWorkerAssignment {
@@ -38,6 +39,10 @@ public class CommunityHealthWorkerAssignment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "appointment_id")
     private Appointment appointment;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "home_visit_id", unique = true)
+    private HomeVisit homeVisit;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)

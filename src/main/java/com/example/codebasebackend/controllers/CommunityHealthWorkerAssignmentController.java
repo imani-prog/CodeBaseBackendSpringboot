@@ -54,6 +54,13 @@ public class CommunityHealthWorkerAssignmentController {
         return ResponseEntity.ok(assignmentService.create(request));
     }
 
+    @PostMapping("/home-visits")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
+    public ResponseEntity<ChwAssignmentResponse> createHomeVisitAssignment(@Valid @RequestBody ChwAssignmentRequest request) {
+        request.setAssignmentType(CommunityHealthWorkerAssignment.AssignmentType.HOME_VISIT.name());
+        return ResponseEntity.ok(assignmentService.create(request));
+    }
+
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
     public ResponseEntity<ChwAssignmentResponse> updateStatus(
