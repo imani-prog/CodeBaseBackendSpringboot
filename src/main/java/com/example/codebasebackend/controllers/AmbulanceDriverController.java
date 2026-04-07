@@ -4,6 +4,7 @@ import com.example.codebasebackend.Entities.AmbulanceDriver;
 import com.example.codebasebackend.services.AmbulanceDriverService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/drivers")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AmbulanceDriverController {
 
     private final AmbulanceDriverService driverService;

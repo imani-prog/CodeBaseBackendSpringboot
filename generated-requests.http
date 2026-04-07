@@ -1,0 +1,334 @@
+### =====================================================================
+### Medilink Ambulance APIs - End-to-end request collection
+### Covers:
+### - /api/ambulances
+### - /api/drivers
+### - /api/assist
+### =====================================================================
+
+@baseUrl = http://localhost:8080
+@jwtToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqZW1vaCIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3NTYwNTUxNSwiZXhwIjoxNzc1NjkxOTE1fQ.rap4bsW8H6hCXR-GxSBjk__FeRU7LoK8uHxJBBO0uXE
+
+@ambulanceId = 1
+@ambulancePlate = KDA123A
+@ambulanceStatus = AVAILABLE
+@ambulanceType = ADVANCED_LIFE_SUPPORT
+
+@driverId = 1
+@driverStatus = ON_DUTY
+
+@dispatchId = 1
+
+### ---------------------------------------------------------------------
+### Ambulances: Create
+### ---------------------------------------------------------------------
+POST {{baseUrl}}/api/ambulances
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "vehiclePlate": "KDF246G",
+  "driverName": "Brian Omondi",
+  "driverPhone": "+254756789012",
+  "status": "AVAILABLE",
+  "medicName": "Winnie Akinyi",
+  "notes": "General response unit for Kibera and Langata",
+  "registrationNumber": "REG-AMB-008",
+  "model": "Ford Transit",
+  "year": 2020,
+  "fuelType": "PETROL",
+  "capacity": 2,
+  "equippedForICU": false,
+  "gpsEnabled": true,
+  "insurancePolicyNumber": "HERITAGE-AMB-778899",
+  "insuranceProvider": "Heritage Insurance",
+  "type": "BASIC_LIFE_SUPPORT",
+  "currentLocation": "Kibera, Nairobi",
+  "currentLatitude": -1.314700,
+  "currentLongitude": 36.784900,
+  "lastMaintenanceDate": "2026-01-10",
+  "nextMaintenanceDate": "2026-04-10",
+  "lastMaintenanceMileage": 61000,
+  "mileage": 63200,
+  "fuelLevel": 55,
+  "averageResponseMinutes": 15,
+  "equipmentList": ["Stretcher", "First Aid Kit", "Oxygen Mask", "Bandages"],
+  "imageUrl": "https://example.com/ambulances/kdf246g.jpg"
+}
+### Ambulances: Get all
+GET {{baseUrl}}/api/ambulances
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Get by id
+GET {{baseUrl}}/api/ambulances/{{ambulanceId}}
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Get by plate
+GET {{baseUrl}}/api/ambulances/by-plate/{{ambulancePlate}}
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Update by id
+PUT {{baseUrl}}/api/ambulances/{{ambulanceId}}
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "vehiclePlate": "KDA123A",
+  "driverName": "Peter Njoroge",
+  "driverPhone": "+254700111222",
+  "status": "BUSY",
+  "medicName": "Grace Wanjiku",
+  "notes": "Assigned to emergency corridor",
+  "registrationNumber": "REG-AMB-001",
+  "model": "Toyota Hiace",
+  "year": 2022,
+  "fuelType": "DIESEL",
+  "capacity": 2,
+  "equippedForICU": true,
+  "gpsEnabled": true,
+  "insurancePolicyNumber": "AIG-AMB-445566",
+  "insuranceProvider": "AIG Kenya",
+  "type": "ADVANCED_LIFE_SUPPORT",
+  "currentLocation": "Westlands",
+  "currentLatitude": -1.2676,
+  "currentLongitude": 36.8108,
+  "lastMaintenanceDate": "2026-03-01",
+  "nextMaintenanceDate": "2026-06-01",
+  "lastMaintenanceMileage": 45000,
+  "mileage": 46500,
+  "fuelLevel": 79,
+  "averageResponseMinutes": 10,
+  "equipmentList": ["Defibrillator", "Oxygen Tank", "Cardiac Monitor"],
+  "imageUrl": "https://example.com/ambulances/kda123a.jpg"
+}
+
+### Ambulances: Update by plate
+PUT {{baseUrl}}/api/ambulances/by-plate/{{ambulancePlate}}
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "vehiclePlate": "KDA123A",
+  "driverName": "Peter Njoroge",
+  "driverPhone": "+254700111222",
+  "status": "AVAILABLE",
+  "medicName": "Grace Wanjiku",
+  "notes": "Back to base and available"
+}
+
+### Ambulances: Delete by id
+DELETE {{baseUrl}}/api/ambulances/{{ambulanceId}}
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Get available
+GET {{baseUrl}}/api/ambulances/available
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Get by status
+GET {{baseUrl}}/api/ambulances/status/{{ambulanceStatus}}
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Patch status
+PATCH {{baseUrl}}/api/ambulances/{{ambulanceId}}/status?status=EN_ROUTE
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Update location + tracking event
+POST {{baseUrl}}/api/ambulances/3/location
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "latitude": -1.2852,
+  "longitude": 36.8219,
+  "speed": 62,
+  "heading": 132,
+  "batteryLevel": 91,
+  "signalStrength": 5,
+  "locationAddress": "Uhuru Highway, Nairobi",
+  "dispatchId": 1
+}
+
+### Ambulances: Tracking history
+GET {{baseUrl}}/api/ambulances/{{ambulanceId}}/tracking-history?from=2026-04-01T00:00:00Z&to=2026-04-08T23:59:59Z
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Current location
+GET {{baseUrl}}/api/ambulances/{{ambulanceId}}/current-location
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Active tracking
+GET {{baseUrl}}/api/ambulances/tracking/active
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Maintenance due
+GET {{baseUrl}}/api/ambulances/maintenance-due
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Statistics
+GET {{baseUrl}}/api/ambulances/statistics
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Search
+GET {{baseUrl}}/api/ambulances/search?query=nairobi
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Filter by type
+GET {{baseUrl}}/api/ambulances/type/{{ambulanceType}}
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Dispatch history
+GET {{baseUrl}}/api/ambulances/{{ambulanceId}}/dispatches
+Authorization: Bearer {{jwtToken}}
+
+### ---------------------------------------------------------------------
+### Drivers: Create
+### ---------------------------------------------------------------------
+POST {{baseUrl}}/api/drivers
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "name": "James Mutiso",
+  "licenseNumber": "DL-KE-889900",
+  "phone": "+254711223344",
+  "email": "james.mutiso@medilink.co.ke",
+  "status": "ON_DUTY",
+  "yearsOfExperience": 6,
+  "certificationsList": ["BLS", "Emergency Driving"],
+  "shiftStart": "06:00",
+  "shiftEnd": "18:00",
+  "totalTrips": 140,
+  "rating": 4.7,
+  "emergencyContact": "+254700998877",
+  "avatarUrl": "https://example.com/drivers/james-mutiso.jpg",
+  "dateOfBirth": "1991-03-17",
+  "hireDate": "2021-07-01"
+}
+
+### Drivers: Get all
+GET {{baseUrl}}/api/drivers
+Authorization: Bearer {{jwtToken}}
+
+### Drivers: Get by id
+GET {{baseUrl}}/api/drivers/{{driverId}}
+Authorization: Bearer {{jwtToken}}
+
+### Drivers: Get available
+GET {{baseUrl}}/api/drivers/available
+Authorization: Bearer {{jwtToken}}
+
+### Drivers: Get by status
+GET {{baseUrl}}/api/drivers/status/{{driverStatus}}
+Authorization: Bearer {{jwtToken}}
+
+### Drivers: Update
+PUT {{baseUrl}}/api/drivers/{{driverId}}
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "name": "James Mutiso",
+  "licenseNumber": "DL-KE-889900",
+  "phone": "+254711223344",
+  "email": "james.mutiso@medilink.co.ke",
+  "status": "ON_TRIP",
+  "yearsOfExperience": 7,
+  "shiftStart": "06:00",
+  "shiftEnd": "18:00",
+  "totalTrips": 145,
+  "rating": 4.8,
+  "emergencyContact": "+254700998877"
+}
+
+### Drivers: Patch status
+PATCH {{baseUrl}}/api/drivers/{{driverId}}/status?status=ON_BREAK
+Authorization: Bearer {{jwtToken}}
+
+### Drivers: Assign to ambulance
+PATCH {{baseUrl}}/api/drivers/{{driverId}}/assign-ambulance?ambulanceId={{ambulanceId}}
+Authorization: Bearer {{jwtToken}}
+
+### Drivers: Delete
+DELETE {{baseUrl}}/api/drivers/{{driverId}}
+Authorization: Bearer {{jwtToken}}
+
+### ---------------------------------------------------------------------
+### Dispatch / Assistance
+### ---------------------------------------------------------------------
+POST {{baseUrl}}/api/assist
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "patientId": 13,
+  "callerName": "Esther Njeri",
+  "callerPhone": "+254701234567",
+  "incidentType": "Road Traffic Accident",
+  "notes": "Patient unconscious, bleeding from head",
+  "pickupLatitude": -1.292066,
+  "pickupLongitude": 36.821945,
+  "pickupAddressLine1": "Moi Avenue",
+  "pickupAddressLine2": "Near Nation Centre",
+  "pickupCity": "Nairobi",
+  "pickupState": "Nairobi County",
+  "pickupPostalCode": "00100",
+  "pickupCountry": "Kenya",
+  "hospitalId": 1,
+  "priority": "CRITICAL",
+  "dropoffAddressLine1": "Kenyatta National Hospital",
+  "dropoffAddressLine2": "Hospital Road",
+  "dropoffCity": "Nairobi",
+  "dropoffState": "Nairobi County",
+  "dropoffPostalCode": "00202",
+  "dropoffCountry": "Kenya",
+  "dropoffLatitude": -1.301052,
+  "dropoffLongitude": 36.808251
+}
+
+### Dispatch: Get all
+GET {{baseUrl}}/api/assist
+Authorization: Bearer {{jwtToken}}
+
+### Dispatch: Get by id
+GET {{baseUrl}}/api/assist/{{dispatchId}}
+Authorization: Bearer {{jwtToken}}
+
+### Dispatch: Update
+PUT {{baseUrl}}/api/assist/{{dispatchId}}
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "patientId": 13,
+  "callerName": "Esther Njeri",
+  "callerPhone": "+254701234567",
+  "incidentType": "Road Traffic Accident",
+  "notes": "Patient stable but requires urgent trauma care",
+  "pickupLatitude": -1.292066,
+  "pickupLongitude": 36.821945,
+  "pickupAddressLine1": "Moi Avenue",
+  "pickupAddressLine2": "Near Nation Centre",
+  "pickupCity": "Nairobi",
+  "pickupState": "Nairobi County",
+  "pickupPostalCode": "00100",
+  "pickupCountry": "Kenya",
+  "hospitalId": 1,
+  "priority": "HIGH",
+  "dropoffAddressLine1": "Kenyatta National Hospital",
+  "dropoffAddressLine2": "Hospital Road",
+  "dropoffCity": "Nairobi",
+  "dropoffState": "Nairobi County",
+  "dropoffPostalCode": "00202",
+  "dropoffCountry": "Kenya",
+  "dropoffLatitude": -1.301052,
+  "dropoffLongitude": 36.808251
+}
+
+### Dispatch: Track dispatch
+GET {{baseUrl}}/api/assist/{{dispatchId}}/track
+Authorization: Bearer {{jwtToken}}
+
+### Dispatch: Delete
+DELETE {{baseUrl}}/api/assist/{{dispatchId}}
+Authorization: Bearer {{jwtToken}}
+
