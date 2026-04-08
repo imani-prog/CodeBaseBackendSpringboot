@@ -1,10 +1,10 @@
 package com.example.codebasebackend.controllers;
 
 import com.example.codebasebackend.Entities.Ambulances;
-import com.example.codebasebackend.Entities.AmbulanceDispatch;
-import com.example.codebasebackend.Entities.AmbulanceTracking;
 import com.example.codebasebackend.dto.request.LocationUpdateRequest;
+import com.example.codebasebackend.dto.response.AmbulanceDispatchResponse;
 import com.example.codebasebackend.dto.response.AmbulanceStatistics;
+import com.example.codebasebackend.dto.response.AmbulanceTrackingResponse;
 import com.example.codebasebackend.services.AmbulanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -83,33 +83,33 @@ public class AmbulanceController {
 
     // ==================== LOCATION & TRACKING ====================
     @PostMapping("/{id}/location")
-    public ResponseEntity<AmbulanceTracking> updateLocation(
+    public ResponseEntity<AmbulanceTrackingResponse> updateLocation(
         @PathVariable Long id,
         @RequestBody LocationUpdateRequest request
     ) {
-        AmbulanceTracking tracking = ambulanceService.updateLocation(id, request);
+        AmbulanceTrackingResponse tracking = ambulanceService.updateLocation(id, request);
         return ResponseEntity.ok(tracking);
     }
 
     @GetMapping("/{id}/tracking-history")
-    public ResponseEntity<List<AmbulanceTracking>> getTrackingHistory(
+    public ResponseEntity<List<AmbulanceTrackingResponse>> getTrackingHistory(
         @PathVariable Long id,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to
     ) {
-        List<AmbulanceTracking> history = ambulanceService.getTrackingHistory(id, from, to);
+        List<AmbulanceTrackingResponse> history = ambulanceService.getTrackingHistory(id, from, to);
         return ResponseEntity.ok(history);
     }
 
     @GetMapping("/{id}/current-location")
-    public ResponseEntity<AmbulanceTracking> getCurrentLocation(@PathVariable Long id) {
-        AmbulanceTracking current = ambulanceService.getCurrentLocation(id);
+    public ResponseEntity<AmbulanceTrackingResponse> getCurrentLocation(@PathVariable Long id) {
+        AmbulanceTrackingResponse current = ambulanceService.getCurrentLocation(id);
         return ResponseEntity.ok(current);
     }
 
     @GetMapping("/tracking/active")
-    public ResponseEntity<List<AmbulanceTracking>> getAllActiveTracking() {
-        List<AmbulanceTracking> active = ambulanceService.getAllActiveTracking();
+    public ResponseEntity<List<AmbulanceTrackingResponse>> getAllActiveTracking() {
+        List<AmbulanceTrackingResponse> active = ambulanceService.getAllActiveTracking();
         return ResponseEntity.ok(active);
     }
 
@@ -142,8 +142,8 @@ public class AmbulanceController {
 
     // ==================== DISPATCH HISTORY ====================
     @GetMapping("/{id}/dispatches")
-    public ResponseEntity<List<AmbulanceDispatch>> getDispatchHistory(@PathVariable Long id) {
-        List<AmbulanceDispatch> dispatches = ambulanceService.getDispatchHistory(id);
+    public ResponseEntity<List<AmbulanceDispatchResponse>> getDispatchHistory(@PathVariable Long id) {
+        List<AmbulanceDispatchResponse> dispatches = ambulanceService.getDispatchHistory(id);
         return ResponseEntity.ok(dispatches);
     }
 }

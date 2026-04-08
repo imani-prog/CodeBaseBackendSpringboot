@@ -1,12 +1,11 @@
 package com.example.codebasebackend.services;
 
 import com.example.codebasebackend.Entities.Ambulances;
-import com.example.codebasebackend.Entities.AmbulanceDispatch;
-import com.example.codebasebackend.Entities.AmbulanceTracking;
 import com.example.codebasebackend.dto.AssistanceRequest;
-import com.example.codebasebackend.dto.AssistanceResponse;
 import com.example.codebasebackend.dto.request.LocationUpdateRequest;
+import com.example.codebasebackend.dto.response.AmbulanceDispatchResponse;
 import com.example.codebasebackend.dto.response.AmbulanceStatistics;
+import com.example.codebasebackend.dto.response.AmbulanceTrackingResponse;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -26,17 +25,17 @@ public interface AmbulanceService {
 
     void deleteAmbulance(Long id);
 
-    AssistanceResponse createDispatch(AssistanceRequest request);
+    AmbulanceDispatchResponse createDispatch(AssistanceRequest request);
 
-    List<AssistanceResponse> getAllDispatches();
+    List<AmbulanceDispatchResponse> getAllDispatches();
 
-    AssistanceResponse getDispatchById(Long id);
+    AmbulanceDispatchResponse getDispatchById(Long id);
 
-    AssistanceResponse updateDispatch(Long id, AssistanceRequest request);
+    AmbulanceDispatchResponse updateDispatch(Long id, AssistanceRequest request);
 
     void deleteDispatch(Long id);
 
-    AssistanceResponse trackDispatch(Long id);
+    AmbulanceDispatchResponse trackDispatch(Long id);
 
     // ==================== NEW METHODS ====================
     // Status management
@@ -45,10 +44,10 @@ public interface AmbulanceService {
     Ambulances updateStatus(Long id, String status);
 
     // Location & tracking
-    AmbulanceTracking updateLocation(Long id, LocationUpdateRequest request);
-    List<AmbulanceTracking> getTrackingHistory(Long id, OffsetDateTime from, OffsetDateTime to);
-    AmbulanceTracking getCurrentLocation(Long id);
-    List<AmbulanceTracking> getAllActiveTracking();
+    AmbulanceTrackingResponse updateLocation(Long id, LocationUpdateRequest request);
+    List<AmbulanceTrackingResponse> getTrackingHistory(Long id, OffsetDateTime from, OffsetDateTime to);
+    AmbulanceTrackingResponse getCurrentLocation(Long id);
+    List<AmbulanceTrackingResponse> getAllActiveTracking();
 
     // Maintenance
     List<Ambulances> getMaintenanceDue();
@@ -61,5 +60,5 @@ public interface AmbulanceService {
     List<Ambulances> getAmbulancesByType(String type);
 
     // Dispatch history
-    List<AmbulanceDispatch> getDispatchHistory(Long id);
+    List<AmbulanceDispatchResponse> getDispatchHistory(Long id);
 }

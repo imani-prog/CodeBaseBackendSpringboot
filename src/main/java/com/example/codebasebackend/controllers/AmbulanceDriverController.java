@@ -1,6 +1,7 @@
 package com.example.codebasebackend.controllers;
 
 import com.example.codebasebackend.Entities.AmbulanceDriver;
+import com.example.codebasebackend.dto.response.AmbulanceDriverResponse;
 import com.example.codebasebackend.services.AmbulanceDriverService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,32 +19,32 @@ public class AmbulanceDriverController {
     private final AmbulanceDriverService driverService;
 
     @PostMapping
-    public ResponseEntity<AmbulanceDriver> addDriver(@RequestBody AmbulanceDriver driver) {
+    public ResponseEntity<AmbulanceDriverResponse> addDriver(@RequestBody AmbulanceDriver driver) {
         return ResponseEntity.ok(driverService.addDriver(driver));
     }
 
     @GetMapping
-    public ResponseEntity<List<AmbulanceDriver>> getAllDrivers() {
+    public ResponseEntity<List<AmbulanceDriverResponse>> getAllDrivers() {
         return ResponseEntity.ok(driverService.getAllDrivers());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AmbulanceDriver> getDriverById(@PathVariable Long id) {
+    public ResponseEntity<AmbulanceDriverResponse> getDriverById(@PathVariable Long id) {
         return ResponseEntity.ok(driverService.getDriverById(id));
     }
 
     @GetMapping("/available")
-    public ResponseEntity<List<AmbulanceDriver>> getAvailableDrivers() {
+    public ResponseEntity<List<AmbulanceDriverResponse>> getAvailableDrivers() {
         return ResponseEntity.ok(driverService.getAvailableDrivers());
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<AmbulanceDriver>> getDriversByStatus(@PathVariable String status) {
+    public ResponseEntity<List<AmbulanceDriverResponse>> getDriversByStatus(@PathVariable String status) {
         return ResponseEntity.ok(driverService.getDriversByStatus(status));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AmbulanceDriver> updateDriver(
+    public ResponseEntity<AmbulanceDriverResponse> updateDriver(
         @PathVariable Long id,
         @RequestBody AmbulanceDriver driver
     ) {
@@ -51,7 +52,7 @@ public class AmbulanceDriverController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<AmbulanceDriver> updateDriverStatus(
+    public ResponseEntity<AmbulanceDriverResponse> updateDriverStatus(
         @PathVariable Long id,
         @RequestParam String status
     ) {
@@ -59,11 +60,16 @@ public class AmbulanceDriverController {
     }
 
     @PatchMapping("/{id}/assign-ambulance")
-    public ResponseEntity<AmbulanceDriver> assignToAmbulance(
+    public ResponseEntity<AmbulanceDriverResponse> assignToAmbulance(
         @PathVariable Long id,
         @RequestParam Long ambulanceId
     ) {
         return ResponseEntity.ok(driverService.assignToAmbulance(id, ambulanceId));
+    }
+
+    @PatchMapping("/{id}/unassign-ambulance")
+    public ResponseEntity<AmbulanceDriverResponse> unassignFromAmbulance(@PathVariable Long id) {
+        return ResponseEntity.ok(driverService.unassignFromAmbulance(id));
     }
 
     @DeleteMapping("/{id}")

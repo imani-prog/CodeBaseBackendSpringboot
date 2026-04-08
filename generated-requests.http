@@ -188,29 +188,28 @@ Authorization: Bearer {{jwtToken}}
 Content-Type: application/json
 
 {
-  "name": "James Mutiso",
-  "licenseNumber": "DL-KE-889900",
-  "phone": "+254711223344",
-  "email": "james.mutiso@medilink.co.ke",
-  "status": "ON_DUTY",
-  "yearsOfExperience": 6,
-  "certificationsList": ["BLS", "Emergency Driving"],
-  "shiftStart": "06:00",
-  "shiftEnd": "18:00",
-  "totalTrips": 140,
-  "rating": 4.7,
-  "emergencyContact": "+254700998877",
-  "avatarUrl": "https://example.com/drivers/james-mutiso.jpg",
-  "dateOfBirth": "1991-03-17",
-  "hireDate": "2021-07-01"
+  "name": "George Maina",
+  "licenseNumber": "DL-KE-667788",
+  "phone": "+254777889900",
+  "email": "george.maina@medilink.co.ke",
+  "status": "OFF_DUTY",
+  "yearsOfExperience": 5,
+  "certificationsList": ["BLS", "Emergency Driving", "ACLS"],
+  "shiftStart": "18:00",
+  "shiftEnd": "06:00",
+  "totalTrips": 130,
+  "rating": 4.4,
+  "emergencyContact": "+254766778899",
+  "avatarUrl": "https://example.com/drivers/george-maina.jpg",
+  "dateOfBirth": "1992-09-19",
+  "hireDate": "2021-04-12"
 }
-
 ### Drivers: Get all
 GET {{baseUrl}}/api/drivers
 Authorization: Bearer {{jwtToken}}
 
 ### Drivers: Get by id
-GET {{baseUrl}}/api/drivers/{{driverId}}
+GET {{baseUrl}}/api/drivers/3
 Authorization: Bearer {{jwtToken}}
 
 ### Drivers: Get available
@@ -245,7 +244,27 @@ PATCH {{baseUrl}}/api/drivers/{{driverId}}/status?status=ON_BREAK
 Authorization: Bearer {{jwtToken}}
 
 ### Drivers: Assign to ambulance
-PATCH {{baseUrl}}/api/drivers/{{driverId}}/assign-ambulance?ambulanceId={{ambulanceId}}
+PATCH {{baseUrl}}/api/drivers/2/assign-ambulance?ambulanceId=4
+Authorization: Bearer {{jwtToken}}
+
+### Drivers: Verify assigned ambulance on driver
+GET {{baseUrl}}/api/drivers/2
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Verify assigned driver on ambulance
+GET {{baseUrl}}/api/ambulances/4
+Authorization: Bearer {{jwtToken}}
+
+### Drivers: Unassign from ambulance
+PATCH {{baseUrl}}/api/drivers/{{driverId}}/unassign-ambulance
+Authorization: Bearer {{jwtToken}}
+
+### Drivers: Verify ambulance cleared on driver
+GET {{baseUrl}}/api/drivers/{{driverId}}
+Authorization: Bearer {{jwtToken}}
+
+### Ambulances: Verify driver cleared on ambulance
+GET {{baseUrl}}/api/ambulances/{{ambulanceId}}
 Authorization: Bearer {{jwtToken}}
 
 ### Drivers: Delete
@@ -253,7 +272,11 @@ DELETE {{baseUrl}}/api/drivers/{{driverId}}
 Authorization: Bearer {{jwtToken}}
 
 ### ---------------------------------------------------------------------
-### Dispatch / Assistance
+### Dispatch / Assistance (JSON test flow)
+### NOTE:
+### - Run in order: Create -> List -> Get -> Update -> Track -> Delete
+### - This API currently uses numeric path id for read/update/track/delete
+### - Keep @dispatchId set to an existing DB id
 ### ---------------------------------------------------------------------
 POST {{baseUrl}}/api/assist
 Authorization: Bearer {{jwtToken}}
@@ -285,16 +308,16 @@ Content-Type: application/json
   "dropoffLongitude": 36.808251
 }
 
-### Dispatch: Get all
+### Dispatch: List all
 GET {{baseUrl}}/api/assist
 Authorization: Bearer {{jwtToken}}
 
 ### Dispatch: Get by id
-GET {{baseUrl}}/api/assist/{{dispatchId}}
+GET {{baseUrl}}/api/assist/3
 Authorization: Bearer {{jwtToken}}
 
 ### Dispatch: Update
-PUT {{baseUrl}}/api/assist/{{dispatchId}}
+PUT {{baseUrl}}/api/assist/3
 Authorization: Bearer {{jwtToken}}
 Content-Type: application/json
 
@@ -331,4 +354,26 @@ Authorization: Bearer {{jwtToken}}
 ### Dispatch: Delete
 DELETE {{baseUrl}}/api/assist/{{dispatchId}}
 Authorization: Bearer {{jwtToken}}
+
+### Dispatch: Create (minimal required JSON)
+POST {{baseUrl}}/api/assist
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "incidentType": "Medical Emergency",
+  "pickupLatitude": -1.292066,
+  "pickupLongitude": 36.821945
+}
+
+### Dispatch: Update coordinates only
+PUT {{baseUrl}}/api/assist/{{dispatchId}}
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "incidentType": "Medical Emergency",
+  "pickupLatitude": -1.290000,
+  "pickupLongitude": 36.820000
+}
 
