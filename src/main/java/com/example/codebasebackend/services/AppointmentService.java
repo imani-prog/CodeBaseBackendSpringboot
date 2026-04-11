@@ -18,7 +18,7 @@ public interface AppointmentService {
     List<AppointmentResponse> listByHospital(Long hospitalId);
     List<AppointmentResponse> listByStatus(Appointment.AppointmentStatus status);
     List<AppointmentResponse> listInRange(OffsetDateTime from, OffsetDateTime to);
-    List<AppointmentResponse> listAll();
+    List<AppointmentResponse> listAll(String providerRole, Long doctorId, Long chwId);
 
     // New methods
     Page<AppointmentResponse> searchAppointments(String status, String type, String searchTerm, int page, int size);

@@ -11,12 +11,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 
 @RestController
+//@PreAuthorize("hasRole('ADMIN')")
+
 @RequestMapping("/api/appointments")
 @RequiredArgsConstructor
 public class AppointmentController {
@@ -70,8 +73,11 @@ public class AppointmentController {
 
 
     @GetMapping
-    public ResponseEntity<List<AppointmentResponse>> getAll() {
-        return ResponseEntity.ok(appointmentService.listAll());
+    public ResponseEntity<List<AppointmentResponse>> getAll(
+            @RequestParam(required = false) String providerRole,
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam(required = false) Long chwId) {
+        return ResponseEntity.ok(appointmentService.listAll(providerRole, doctorId, chwId));
     }
 
     @GetMapping("/search")

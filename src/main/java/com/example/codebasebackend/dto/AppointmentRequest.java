@@ -24,6 +24,8 @@ public class AppointmentRequest {
     private String providerName;
     private String providerRole;
     private Long providerId;
+    private Long doctorId;
+    private Long chwId;
     private String room;
     private String location;
     private String reason;
@@ -49,6 +51,10 @@ public class AppointmentRequest {
     public void setProviderRole(String providerRole) { this.providerRole = providerRole; }
     public Long getProviderId() { return providerId; }
     public void setProviderId(Long providerId) { this.providerId = providerId; }
+    public Long getDoctorId() { return doctorId; }
+    public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
+    public Long getChwId() { return chwId; }
+    public void setChwId(Long chwId) { this.chwId = chwId; }
     public String getRoom() { return room; }
     public void setRoom(String room) { this.room = room; }
     public String getLocation() { return location; }

@@ -554,6 +554,7 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
         return TelemedicineSessionResponse.builder()
             .id(session.getId())
             .sessionId(session.getSessionId())
+            .appointmentId(session.getAppointment() != null ? session.getAppointment().getId() : null)
             // Patient info
             .patientId(session.getPatient().getId())
             .patientName(session.getPatient().getFirstName() + " " + session.getPatient().getLastName())

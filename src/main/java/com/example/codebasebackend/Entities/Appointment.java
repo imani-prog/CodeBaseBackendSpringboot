@@ -123,6 +123,6 @@ public class Appointment {
     }
 
     public enum AppointmentStatus { SCHEDULED, CONFIRMED, CHECKED_IN, IN_PROGRESS, COMPLETED, CANCELED, NO_SHOW, RESCHEDULED }
-    public enum AppointmentType { CONSULTATION, FOLLOW_UP, SURGERY, LAB_TEST, IMAGING, VACCINATION, TELEHEALTH, OTHER }
+    public enum AppointmentType { CONSULTATION, FOLLOW_UP, SURGERY, LAB_TEST, IMAGING, VACCINATION, TELEHEALTH, TELEMEDICINE, OTHER }
     public enum ProviderRole { CHW, DOCTOR, OTHER }
 }

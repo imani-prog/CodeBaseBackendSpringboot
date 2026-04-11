@@ -39,4 +39,15 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         @Param("searchTerm") String searchTerm,
         Pageable pageable
     );
+
+    @Query("SELECT a FROM Appointment a WHERE " +
+           "(:providerRole IS NULL OR a.providerRole = :providerRole) AND " +
+           "(:doctorId IS NULL OR a.doctor.id = :doctorId) AND " +
+           "(:chwId IS NULL OR a.chw.id = :chwId) " +
+           "ORDER BY a.scheduledStart DESC")
+    List<Appointment> findAllWithProviderFilters(
+        @Param("providerRole") Appointment.ProviderRole providerRole,
+        @Param("doctorId") Long doctorId,
+        @Param("chwId") Long chwId
+    );
 }

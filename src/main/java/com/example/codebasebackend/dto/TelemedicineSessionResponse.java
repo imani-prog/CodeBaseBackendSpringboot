@@ -15,6 +15,7 @@ public class TelemedicineSessionResponse {
 
     private Long id;
     private String sessionId;
+    private Long appointmentId;
 
     // Patient Information (enriched)
     private Long patientId;

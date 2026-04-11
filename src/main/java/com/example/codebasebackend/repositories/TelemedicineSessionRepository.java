@@ -18,6 +18,8 @@ public interface TelemedicineSessionRepository extends JpaRepository<Telemedicin
 
     // Find by session ID
     Optional<TelemedicineSession> findBySessionId(String sessionId);
+    Optional<TelemedicineSession> findByAppointmentId(Long appointmentId);
+    void deleteByAppointmentId(Long appointmentId);
 
     // Find by status
     List<TelemedicineSession> findByStatus(SessionStatus status);

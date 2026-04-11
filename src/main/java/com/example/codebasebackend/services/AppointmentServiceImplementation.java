@@ -5,6 +5,11 @@ import com.example.codebasebackend.Entities.CommunityHealthWorkers;
 import com.example.codebasebackend.Entities.Doctor;
 import com.example.codebasebackend.Entities.Hospital;
 import com.example.codebasebackend.Entities.Patient;
+import com.example.codebasebackend.Entities.PlatformType;
+import com.example.codebasebackend.Entities.Priority;
+import com.example.codebasebackend.Entities.SessionStatus;
+import com.example.codebasebackend.Entities.SessionType;
+import com.example.codebasebackend.Entities.TelemedicineSession;
 import com.example.codebasebackend.dto.AppointmentRequest;
 import com.example.codebasebackend.dto.AppointmentResponse;
 import com.example.codebasebackend.repositories.AppointmentRepository;
@@ -12,6 +17,7 @@ import com.example.codebasebackend.repositories.CommunityHealthWorkersRepository
 import com.example.codebasebackend.repositories.DoctorRepository;
 import com.example.codebasebackend.repositories.HospitalRepository;
 import com.example.codebasebackend.repositories.PatientRepository;
+import com.example.codebasebackend.repositories.TelemedicineSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,7 +27,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -39,6 +48,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
     private final HospitalRepository hospitalRepository;
     private final CommunityHealthWorkersRepository communityHealthWorkersRepository;
     private final DoctorRepository doctorRepository;
+    private final TelemedicineSessionRepository telemedicineSessionRepository;
     private final CommunityHealthWorkerAssignmentService assignmentService;
 
     @Override
@@ -73,6 +83,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
             appt.setType(parseType(request.getType()));
         }
         Appointment saved = appointmentRepository.save(appt);
+        syncTelemedicineSession(saved);
         assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
@@ -119,6 +130,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         if (request.getType() != null) appt.setType(parseType(request.getType()));
 
         Appointment saved = appointmentRepository.save(appt);
+        syncTelemedicineSession(saved);
         assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
@@ -128,6 +140,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         if (!appointmentRepository.existsById(id)) {
             throw new ResponseStatusException(NOT_FOUND, "Appointment not found");
         }
+        telemedicineSessionRepository.deleteByAppointmentId(id);
         assignmentService.removeForAppointment(id);
         appointmentRepository.deleteById(id);
     }
@@ -165,8 +178,33 @@ public class AppointmentServiceImplementation implements AppointmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AppointmentResponse> listAll() {
-        return appointmentRepository.findAll()
+    public List<AppointmentResponse> listAll(String providerRole, Long doctorId, Long chwId) {
+        Appointment.ProviderRole providerRoleEnum = null;
+        if (providerRole != null && !providerRole.isBlank() && !providerRole.equalsIgnoreCase("all")) {
+            providerRoleEnum = parseProviderRole(providerRole);
+        }
+
+        if (doctorId != null && chwId != null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Use either doctorId or chwId filter, not both");
+        }
+
+        if (providerRoleEnum == Appointment.ProviderRole.DOCTOR && chwId != null) {
+            throw new ResponseStatusException(BAD_REQUEST, "chwId cannot be used with providerRole=DOCTOR");
+        }
+
+        if (providerRoleEnum == Appointment.ProviderRole.CHW && doctorId != null) {
+            throw new ResponseStatusException(BAD_REQUEST, "doctorId cannot be used with providerRole=CHW");
+        }
+
+        if (providerRoleEnum == null && doctorId != null) {
+            providerRoleEnum = Appointment.ProviderRole.DOCTOR;
+        }
+
+        if (providerRoleEnum == null && chwId != null) {
+            providerRoleEnum = Appointment.ProviderRole.CHW;
+        }
+
+        return appointmentRepository.findAllWithProviderFilters(providerRoleEnum, doctorId, chwId)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -209,6 +247,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setStatus(Appointment.AppointmentStatus.CHECKED_IN);
 
         Appointment saved = appointmentRepository.save(appt);
+        syncTelemedicineSession(saved);
         assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
@@ -230,6 +269,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setStatus(Appointment.AppointmentStatus.COMPLETED);
 
         Appointment saved = appointmentRepository.save(appt);
+        syncTelemedicineSession(saved);
         assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
@@ -256,6 +296,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
             : cancelNote);
 
         Appointment saved = appointmentRepository.save(appt);
+        syncTelemedicineSession(saved);
         assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
@@ -287,6 +328,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setStatus(Appointment.AppointmentStatus.RESCHEDULED);
 
         Appointment saved = appointmentRepository.save(appt);
+        syncTelemedicineSession(saved);
         assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
@@ -304,6 +346,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setStatus(Appointment.AppointmentStatus.CONFIRMED);
 
         Appointment saved = appointmentRepository.save(appt);
+        syncTelemedicineSession(saved);
         assignmentService.syncFromAppointment(saved);
         return toResponse(saved);
     }
@@ -328,7 +371,13 @@ public class AppointmentServiceImplementation implements AppointmentService {
     }
 
     private Appointment.AppointmentType parseType(String s) {
-        try { return Appointment.AppointmentType.valueOf(s.toUpperCase()); }
+        try {
+            String value = s.toUpperCase();
+            if ("TELEMED".equals(value)) {
+                value = "TELEMEDICINE";
+            }
+            return Appointment.AppointmentType.valueOf(value);
+        }
         catch (IllegalArgumentException ex) { throw new ResponseStatusException(BAD_REQUEST, "Invalid type"); }
     }
 
@@ -338,21 +387,33 @@ public class AppointmentServiceImplementation implements AppointmentService {
     }
 
     private void applyProvider(AppointmentRequest request, Appointment appointment) {
-        if (request.getProviderRole() == null || request.getProviderRole().isBlank()) {
+        if (request.getDoctorId() != null && request.getChwId() != null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Only one provider can be linked to an appointment");
+        }
+
+        String providerRoleText = request.getProviderRole();
+        if ((providerRoleText == null || providerRoleText.isBlank()) && request.getDoctorId() != null) {
+            providerRoleText = Appointment.ProviderRole.DOCTOR.name();
+        } else if ((providerRoleText == null || providerRoleText.isBlank()) && request.getChwId() != null) {
+            providerRoleText = Appointment.ProviderRole.CHW.name();
+        }
+
+        if (providerRoleText == null || providerRoleText.isBlank()) {
             appointment.setProviderRole(null);
             appointment.setChw(null);
             appointment.setDoctor(null);
             return;
         }
 
-        Appointment.ProviderRole providerRole = parseProviderRole(request.getProviderRole());
+        Appointment.ProviderRole providerRole = parseProviderRole(providerRoleText);
         appointment.setProviderRole(providerRole);
 
         if (providerRole == Appointment.ProviderRole.CHW) {
-            if (request.getProviderId() == null) {
+            Long providerId = request.getChwId() != null ? request.getChwId() : request.getProviderId();
+            if (providerId == null) {
                 throw new ResponseStatusException(BAD_REQUEST, "providerId is required when providerRole is CHW");
             }
-            CommunityHealthWorkers chw = communityHealthWorkersRepository.findById(request.getProviderId())
+            CommunityHealthWorkers chw = communityHealthWorkersRepository.findById(providerId)
                     .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "CHW not found"));
             appointment.setChw(chw);
             appointment.setDoctor(null);
@@ -363,10 +424,11 @@ public class AppointmentServiceImplementation implements AppointmentService {
         }
 
         if (providerRole == Appointment.ProviderRole.DOCTOR) {
-            if (request.getProviderId() == null) {
+            Long providerId = request.getDoctorId() != null ? request.getDoctorId() : request.getProviderId();
+            if (providerId == null) {
                 throw new ResponseStatusException(BAD_REQUEST, "providerId is required when providerRole is DOCTOR");
             }
-            Doctor doctor = doctorRepository.findById(request.getProviderId())
+            Doctor doctor = doctorRepository.findById(providerId)
                     .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Doctor not found"));
             appointment.setDoctor(doctor);
             appointment.setChw(null);
@@ -415,6 +477,11 @@ public class AppointmentServiceImplementation implements AppointmentService {
         } else if (a.getProviderRole() == Appointment.ProviderRole.DOCTOR && a.getDoctor() != null) {
             dto.setProviderId(a.getDoctor().getId());
         }
+        dto.setDoctorId(a.getDoctor() != null ? a.getDoctor().getId() : null);
+        dto.setChwId(a.getChw() != null ? a.getChw().getId() : null);
+        dto.setTelemedicineSessionId(
+                telemedicineSessionRepository.findByAppointmentId(a.getId()).map(TelemedicineSession::getId).orElse(null)
+        );
 
         // Clinical/operational
         dto.setProviderName(a.getProviderName());
@@ -462,5 +529,113 @@ public class AppointmentServiceImplementation implements AppointmentService {
             sb.append(chw.getLastName());
         }
         return sb.toString();
+    }
+
+    private void syncTelemedicineSession(Appointment appointment) {
+        if (appointment.getId() == null) {
+            return;
+        }
+
+        boolean isTelemedicineType = appointment.getType() == Appointment.AppointmentType.TELEMEDICINE
+                || appointment.getType() == Appointment.AppointmentType.TELEHEALTH;
+
+        if (!isTelemedicineType) {
+            telemedicineSessionRepository.deleteByAppointmentId(appointment.getId());
+            return;
+        }
+
+        if (appointment.getProviderRole() != Appointment.ProviderRole.DOCTOR || appointment.getDoctor() == null) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Telemedicine appointments must be linked to a DOCTOR provider");
+        }
+
+        TelemedicineSession session = telemedicineSessionRepository
+                .findByAppointmentId(appointment.getId())
+                .orElseGet(TelemedicineSession::new);
+
+        if (session.getSessionId() == null || session.getSessionId().isBlank()) {
+            session.setSessionId(generateTelemedicineSessionId());
+        }
+
+        session.setAppointment(appointment);
+        session.setPatient(appointment.getPatient());
+        session.setDoctor(appointment.getDoctor());
+        session.setHospital(appointment.getHospital());
+        session.setSessionType(SessionType.CONSULTATION);
+        session.setPlatform(PlatformType.VIDEO_CALL);
+        session.setPriority(Priority.NORMAL);
+        session.setStatus(mapAppointmentStatusToSessionStatus(appointment.getStatus()));
+        session.setStartTime(appointment.getScheduledStart());
+        session.setPlannedDuration(resolvePlannedDuration(appointment));
+        if (session.getSymptoms() == null || session.getSymptoms().isEmpty()) {
+            session.setSymptoms(Collections.singletonList("General consultation"));
+        }
+        if (session.getChiefComplaint() == null || session.getChiefComplaint().isBlank()) {
+            session.setChiefComplaint(resolveChiefComplaint(appointment));
+        }
+        if (session.getCost() == null) {
+            session.setCost(BigDecimal.ZERO);
+        }
+        if (session.getActualCost() == null) {
+            session.setActualCost(session.getCost());
+        }
+        if (session.getPaymentStatus() == null || session.getPaymentStatus().isBlank()) {
+            session.setPaymentStatus("PENDING");
+        }
+        if (session.getRecordingEnabled() == null) {
+            session.setRecordingEnabled(false);
+        }
+        if (session.getReminderSent() == null) {
+            session.setReminderSent(false);
+        }
+        if (session.getMeetingLink() == null || session.getMeetingLink().isBlank()) {
+            session.setMeetingLink("https://telemedicine.medilink.com/session/" + session.getSessionId());
+        }
+        if (session.getMeetingId() == null || session.getMeetingId().isBlank()) {
+            session.setMeetingId(UUID.randomUUID().toString());
+        }
+
+        telemedicineSessionRepository.save(session);
+    }
+
+    private SessionStatus mapAppointmentStatusToSessionStatus(Appointment.AppointmentStatus status) {
+        if (status == null) {
+            return SessionStatus.SCHEDULED;
+        }
+        return switch (status) {
+            case CHECKED_IN, IN_PROGRESS -> SessionStatus.ACTIVE;
+            case COMPLETED -> SessionStatus.COMPLETED;
+            case CANCELED -> SessionStatus.CANCELLED;
+            case NO_SHOW -> SessionStatus.NO_SHOW;
+            default -> SessionStatus.SCHEDULED;
+        };
+    }
+
+    private Integer resolvePlannedDuration(Appointment appointment) {
+        if (appointment.getScheduledStart() == null || appointment.getScheduledEnd() == null) {
+            return 30;
+        }
+        long minutes = ChronoUnit.MINUTES.between(appointment.getScheduledStart(), appointment.getScheduledEnd());
+        if (minutes < 5) {
+            return 5;
+        }
+        if (minutes > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) minutes;
+    }
+
+    private String resolveChiefComplaint(Appointment appointment) {
+        if (appointment.getReason() != null && !appointment.getReason().isBlank()) {
+            return appointment.getReason();
+        }
+        if (appointment.getNotes() != null && !appointment.getNotes().isBlank()) {
+            return appointment.getNotes();
+        }
+        return "Telemedicine appointment";
+    }
+
+    private String generateTelemedicineSessionId() {
+        return "TM-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
     }
 }
