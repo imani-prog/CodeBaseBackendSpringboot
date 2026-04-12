@@ -37,7 +37,11 @@ public class AuditAspect {
         Method method = sig.getMethod();
         Auditable ann = method.getAnnotation(Auditable.class);
         String entityType = ann.entityType();
-        String preEntityId = evaluateEntityId(ann.entityIdExpression(), sig, pjp.getArgs(), null);
+        String inferredEntityId = inferEntityIdFromArgs(sig, pjp.getArgs());
+        String preEntityId = firstNonBlank(
+                evaluateEntityId(ann.entityIdExpression(), sig, pjp.getArgs(), null),
+                inferredEntityId
+        );
 
         String preDetails = null;
         if (ann.includeArgs()) {
@@ -58,9 +62,11 @@ public class AuditAspect {
                 postDetails = toJsonSafe(map);
             }
 
-            String finalEntityId = preEntityId;
-            String maybePost = evaluateEntityId(ann.entityIdExpression(), sig, pjp.getArgs(), result);
-            if (maybePost != null) finalEntityId = maybePost;
+            String finalEntityId = firstNonBlank(
+                    evaluateEntityId(ann.entityIdExpression(), sig, pjp.getArgs(), result),
+                    preEntityId,
+                    inferredEntityId
+            );
 
             AuditLogRequest req = new AuditLogRequest();
             req.setEventType(ann.eventType().name());
@@ -102,6 +108,43 @@ public class AuditAspect {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private String inferEntityIdFromArgs(MethodSignature sig, Object[] args) {
+        if (sig == null || args == null || args.length == 0) return null;
+        String[] names = sig.getParameterNames();
+        if (names == null || names.length == 0) return null;
+
+        // 1) Prefer a direct "id" parameter.
+        for (int i = 0; i < names.length && i < args.length; i++) {
+            if ("id".equalsIgnoreCase(names[i])) {
+                String value = toEntityIdValue(args[i]);
+                if (value != null) return value;
+            }
+        }
+
+        // 2) Fallback to first non-null "*Id" parameter.
+        for (int i = 0; i < names.length && i < args.length; i++) {
+            if (names[i] != null && names[i].toLowerCase().endsWith("id")) {
+                String value = toEntityIdValue(args[i]);
+                if (value != null) return value;
+            }
+        }
+        return null;
+    }
+
+    private String toEntityIdValue(Object value) {
+        if (value == null) return null;
+        String s = String.valueOf(value).trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value;
+        }
+        return null;
     }
 
     private Map<String, Object> argsMap(MethodSignature sig, Object[] args) {

@@ -4,9 +4,11 @@ import com.example.codebasebackend.Entities.CommunityHealthWorkers;
 import com.example.codebasebackend.Entities.Hospital;
 import com.example.codebasebackend.Entities.Patient;
 import com.example.codebasebackend.Entities.User;
+import com.example.codebasebackend.Entities.AuditLog;
 import com.example.codebasebackend.Entities.UserRole;
 import com.example.codebasebackend.Entities.UserStatus;
 import com.example.codebasebackend.configs.JwtUtil;
+import com.example.codebasebackend.dto.AuditLogRequest;
 import com.example.codebasebackend.dto.AuthResponse;
 import com.example.codebasebackend.dto.LoginRequest;
 import com.example.codebasebackend.dto.RegisterRequest;
@@ -17,6 +19,7 @@ import com.example.codebasebackend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +37,7 @@ public class AuthServiceImpl implements AuthService {
     private final PatientRepository patientRepository;
     private final CommunityHealthWorkersRepository communityHealthWorkersRepository;
     private final HospitalRepository hospitalRepository;
+    private final AuditService auditService;
 
     @Override
     @Transactional
@@ -172,9 +176,21 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse login(LoginRequest request) {
         String loginIdentifier = request.getUsername();
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginIdentifier, request.getPassword())
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginIdentifier, request.getPassword())
+            );
+        } catch (AuthenticationException ex) {
+            writeAuthAudit(
+                    AuditLog.EventType.LOGIN,
+                    loginIdentifier,
+                    null,
+                    AuditLog.EventStatus.FAILURE,
+                    ex.getMessage(),
+                    "{\"action\":\"login\",\"identifier\":\"" + loginIdentifier + "\"}"
+            );
+            throw ex;
+        }
 
         User user = userRepository.findByUsernameIgnoreCase(loginIdentifier)
                 .or(() -> userRepository.findByEmailIgnoreCase(loginIdentifier))
@@ -183,7 +199,38 @@ public class AuthServiceImpl implements AuthService {
         user.setLastLoginAt(OffsetDateTime.now());
         userRepository.save(user);
 
+        writeAuthAudit(
+                AuditLog.EventType.LOGIN,
+                user.getUsername(),
+                user.getId(),
+                AuditLog.EventStatus.SUCCESS,
+                null,
+                "{\"action\":\"login\",\"identifier\":\"" + user.getUsername() + "\"}"
+        );
+
         String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
         return new AuthResponse(token, user.getUsername(), user.getRole().name(), user.getId());
+    }
+
+    private void writeAuthAudit(AuditLog.EventType eventType,
+                                String username,
+                                Long userId,
+                                AuditLog.EventStatus status,
+                                String errorMessage,
+                                String details) {
+        try {
+            AuditLogRequest req = new AuditLogRequest();
+            req.setEventType(eventType.name());
+            req.setEntityType("User");
+            req.setEntityId(userId != null ? String.valueOf(userId) : username);
+            req.setUserId(userId);
+            req.setUsername(username);
+            req.setStatus(status.name());
+            req.setErrorMessage(errorMessage);
+            req.setDetails(details);
+            auditService.log(req);
+        } catch (Exception ignored) {
+            // Never block authentication flow due to audit write issues.
+        }
     }
 }

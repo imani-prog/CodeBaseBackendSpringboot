@@ -14,6 +14,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -45,12 +47,52 @@ public class AuditServiceImplementation implements AuditService {
         AuditLog e = new AuditLog();
         e.setEventType(parseEventType(r.getEventType()));
         e.setEntityType(r.getEntityType());
-        e.setEntityId(r.getEntityId());
+
+        String authenticatedUsername = currentUsername();
+        String requestedUsername = StringUtils.hasText(r.getUsername()) ? r.getUsername().trim() : null;
+
+        User resolvedUser = null;
         if (r.getUserId() != null) {
-            Optional<User> user = userRepo.findById(r.getUserId());
-            user.ifPresent(e::setUser);
+            resolvedUser = userRepo.findById(r.getUserId()).orElse(null);
         }
-        e.setUsername(StringUtils.hasText(r.getUsername()) ? r.getUsername() : currentUsername());
+        if (resolvedUser == null && StringUtils.hasText(requestedUsername)) {
+            resolvedUser = userRepo.findByUsernameIgnoreCase(requestedUsername)
+                    .or(() -> userRepo.findByEmailIgnoreCase(requestedUsername))
+                    .orElse(null);
+        }
+        if (resolvedUser == null && StringUtils.hasText(authenticatedUsername) && !"system".equalsIgnoreCase(authenticatedUsername)) {
+            resolvedUser = userRepo.findByUsernameIgnoreCase(authenticatedUsername)
+                    .or(() -> userRepo.findByEmailIgnoreCase(authenticatedUsername))
+                    .orElse(null);
+        }
+
+        if (resolvedUser != null) {
+            e.setUser(resolvedUser);
+        }
+
+        String finalUsername = requestedUsername;
+        if (!StringUtils.hasText(finalUsername) && resolvedUser != null) {
+            finalUsername = resolvedUser.getUsername();
+        }
+        if (!StringUtils.hasText(finalUsername)) {
+            finalUsername = authenticatedUsername;
+        }
+        e.setUsername(finalUsername);
+
+        String entityId = StringUtils.hasText(r.getEntityId()) ? r.getEntityId().trim() : null;
+        if (!StringUtils.hasText(entityId)
+                && "USER".equalsIgnoreCase(r.getEntityType())
+                && resolvedUser != null
+                && resolvedUser.getId() != null) {
+            entityId = String.valueOf(resolvedUser.getId());
+        }
+        if (!StringUtils.hasText(entityId)
+                && (e.getEventType() == AuditLog.EventType.LOGIN || e.getEventType() == AuditLog.EventType.LOGOUT)
+                && StringUtils.hasText(finalUsername)) {
+            entityId = finalUsername;
+        }
+        e.setEntityId(entityId);
+
         e.setIpAddress(StringUtils.hasText(r.getIpAddress()) ? r.getIpAddress() : currentIp());
         e.setSessionId(StringUtils.hasText(r.getSessionId()) ? r.getSessionId() : currentSessionId());
         e.setCorrelationId(StringUtils.hasText(r.getCorrelationId()) ? r.getCorrelationId() : currentCorrelationId());
@@ -82,6 +124,10 @@ public class AuditServiceImplementation implements AuditService {
 
         AuditLog.EventType parsedEventType = parseOptionalEventType(eventType);
         AuditLog.EventStatus parsedStatus = parseOptionalStatus(status);
+        String resolvedUsernameFromUserId = null;
+        if (userId != null) {
+            resolvedUsernameFromUserId = userRepo.findById(userId).map(User::getUsername).orElse(null);
+        }
 
         Pageable safePageable = pageable;
         if (pageable == null || pageable.getSort().isUnsorted()) {
@@ -96,8 +142,7 @@ public class AuditServiceImplementation implements AuditService {
                 eqEventType(parsedEventType),
                 like("entityType", entityType),
                 like("entityId", entityId),
-                eqId("user.id", userId),
-                like("username", username),
+                userIdentityFilter(userId, username, resolvedUsernameFromUserId),
                 containsAny(searchTerm),
                 eqStatus(parsedStatus),
                 eqLong("integrationPartnerId", integrationPartnerId),
@@ -181,7 +226,14 @@ public class AuditServiceImplementation implements AuditService {
         HttpServletRequest req = currentRequest();
         return req != null ? req.getHeader("X-Request-Id") : null;
     }
-    private String currentUsername() { return "system"; }
+    private String currentUsername() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && StringUtils.hasText(auth.getName())
+                && !"anonymousUser".equalsIgnoreCase(auth.getName())) {
+            return auth.getName();
+        }
+        return "system";
+    }
 
     private HttpServletRequest currentRequest() {
         RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
@@ -210,6 +262,41 @@ public class AuditServiceImplementation implements AuditService {
         return (root, q, cb) -> value == null ? null : cb.equal(getPath(root, field), value);
     }
 
+    private Specification<AuditLog> userIdentityFilter(Long userId, String username, String resolvedUsernameFromUserId) {
+        return (root, q, cb) -> {
+            boolean hasUserId = userId != null;
+            boolean hasUsername = StringUtils.hasText(username);
+            if (!hasUserId && !hasUsername) {
+                return null;
+            }
+
+            jakarta.persistence.criteria.Predicate userIdPredicate = null;
+            if (hasUserId) {
+                jakarta.persistence.criteria.Predicate byLinkedUser = cb.equal(getPath(root, "user.id"), userId);
+                if (StringUtils.hasText(resolvedUsernameFromUserId)) {
+                    jakarta.persistence.criteria.Predicate byUsernameFallback = cb.equal(
+                            cb.lower(root.get("username")),
+                            resolvedUsernameFromUserId.toLowerCase(Locale.ROOT)
+                    );
+                    userIdPredicate = cb.or(byLinkedUser, byUsernameFallback);
+                } else {
+                    userIdPredicate = byLinkedUser;
+                }
+            }
+
+            jakarta.persistence.criteria.Predicate usernamePredicate = null;
+            if (hasUsername) {
+                String like = "%" + username.toLowerCase(Locale.ROOT) + "%";
+                usernamePredicate = cb.like(cb.lower(root.get("username")), like);
+            }
+
+            if (userIdPredicate != null && usernamePredicate != null) {
+                return cb.and(userIdPredicate, usernamePredicate);
+            }
+            return userIdPredicate != null ? userIdPredicate : usernamePredicate;
+        };
+    }
+
     private Specification<AuditLog> between(String field, OffsetDateTime from, OffsetDateTime to) {
         return (root, q, cb) -> {
             if (from == null && to == null) return null;
@@ -223,6 +310,7 @@ public class AuditServiceImplementation implements AuditService {
         return (root, q, cb) -> {
             if (!StringUtils.hasText(searchTerm)) return null;
             String like = "%" + searchTerm.toLowerCase(Locale.ROOT) + "%";
+            String rawLike = "%" + searchTerm + "%";
             return cb.or(
                     cb.like(cb.lower(root.get("username")), like),
                     cb.like(cb.lower(root.get("entityType")), like),
@@ -230,7 +318,8 @@ public class AuditServiceImplementation implements AuditService {
                     cb.like(cb.lower(root.get("ipAddress")), like),
                     cb.like(cb.lower(root.get("sessionId")), like),
                     cb.like(cb.lower(root.get("correlationId")), like),
-                    cb.like(cb.lower(root.get("details")), like),
+                    // details is @Lob(CLOB); avoid lower(details) which breaks on some DBs.
+                    cb.like(root.get("details"), rawLike),
                     cb.like(cb.lower(root.get("errorMessage")), like)
             );
         };
@@ -248,14 +337,24 @@ public class AuditServiceImplementation implements AuditService {
 
     private AuditLogResponse toResponse(AuditLog e) {
         AuditLogResponse dto = new AuditLogResponse();
+        User responseUser = resolveUserForResponse(e);
+
         dto.setId(e.getId());
         dto.setEventType(e.getEventType() != null ? e.getEventType().name() : null);
         dto.setEntityType(e.getEntityType());
-        dto.setEntityId(e.getEntityId());
-        dto.setUserId(e.getUser() != null ? e.getUser().getId() : null);
-        dto.setUsername(e.getUsername());
-        dto.setUserDisplayName(e.getUsername());
-        dto.setUserRole(e.getUser() != null && e.getUser().getRole() != null ? e.getUser().getRole().name() : "SYSTEM");
+        dto.setEntityId(StringUtils.hasText(e.getEntityId()) ? e.getEntityId() : "-");
+        dto.setUserId(responseUser != null ? responseUser.getId() : null);
+
+        String username = StringUtils.hasText(e.getUsername()) ? e.getUsername() : (responseUser != null ? responseUser.getUsername() : "system");
+        String fullName = responseUser != null && StringUtils.hasText(responseUser.getFullName())
+                ? responseUser.getFullName()
+                : null;
+        String displayName = StringUtils.hasText(fullName) ? fullName : username;
+
+        dto.setUsername(username);
+        dto.setFullName(fullName);
+        dto.setUserDisplayName(displayName);
+        dto.setUserRole(responseUser != null && responseUser.getRole() != null ? responseUser.getRole().name() : "SYSTEM");
         dto.setIpAddress(e.getIpAddress());
         dto.setEventTime(e.getEventTime());
         dto.setPerformedAt(e.getEventTime());
@@ -269,5 +368,17 @@ public class AuditServiceImplementation implements AuditService {
         dto.setDetails(e.getDetails());
         dto.setUpdatedAt(e.getUpdatedAt());
         return dto;
+    }
+
+    private User resolveUserForResponse(AuditLog e) {
+        if (e.getUser() != null) {
+            return e.getUser();
+        }
+        if (!StringUtils.hasText(e.getUsername())) {
+            return null;
+        }
+        return userRepo.findByUsernameIgnoreCase(e.getUsername())
+                .or(() -> userRepo.findByEmailIgnoreCase(e.getUsername()))
+                .orElse(null);
     }
 }

@@ -13,6 +13,7 @@ public class AuditLogResponse {
     private String entityId;
     private Long userId;
     private String username;
+    private String fullName;
     @JsonProperty("userName")
     private String userDisplayName;
     private String userRole;
