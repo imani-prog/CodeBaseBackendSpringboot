@@ -43,9 +43,25 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
+            writeAuthAudit(
+                    AuditLog.EventType.CREATE,
+                    request.getUsername(),
+                    null,
+                    AuditLog.EventStatus.FAILURE,
+                    "Username already exists",
+                    "{\"action\":\"register\",\"identifier\":\"" + request.getUsername() + "\"}"
+            );
             throw new IllegalArgumentException("Username already exists");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
+            writeAuthAudit(
+                    AuditLog.EventType.CREATE,
+                    request.getUsername(),
+                    null,
+                    AuditLog.EventStatus.FAILURE,
+                    "Email already exists",
+                    "{\"action\":\"register\",\"identifier\":\"" + request.getUsername() + "\"}"
+            );
             throw new IllegalArgumentException("Email already exists");
         }
 
@@ -65,16 +81,41 @@ public class AuthServiceImpl implements AuthService {
         if (role == UserRole.PATIENT) {
             RegisterRequest.PatientProfileRequest patientRequest = request.getPatient();
             if (patientRequest == null) {
+                writeAuthAudit(
+                        AuditLog.EventType.CREATE,
+                        request.getUsername(),
+                        saved.getId(),
+                        AuditLog.EventStatus.FAILURE,
+                        "Patient details are required for PATIENT registration",
+                        "{\"action\":\"register\",\"identifier\":\"" + request.getUsername() + "\",\"role\":\"PATIENT\"}"
+                );
                 throw new IllegalArgumentException("Patient details are required for PATIENT registration");
             }
             patientRepository.save(buildPatient(saved, patientRequest));
         } else if (role == UserRole.CHW) {
             RegisterRequest.ChwProfileRequest chwRequest = request.getCommunityHealthWorker();
             if (chwRequest == null) {
+                writeAuthAudit(
+                        AuditLog.EventType.CREATE,
+                        request.getUsername(),
+                        saved.getId(),
+                        AuditLog.EventStatus.FAILURE,
+                        "CHW details are required for CHW registration",
+                        "{\"action\":\"register\",\"identifier\":\"" + request.getUsername() + "\",\"role\":\"CHW\"}"
+                );
                 throw new IllegalArgumentException("CHW details are required for CHW registration");
             }
             communityHealthWorkersRepository.save(buildChw(saved, chwRequest));
         }
+
+        writeAuthAudit(
+                AuditLog.EventType.CREATE,
+                saved.getUsername(),
+                saved.getId(),
+                AuditLog.EventStatus.SUCCESS,
+                null,
+                "{\"action\":\"register\",\"identifier\":\"" + saved.getUsername() + "\",\"role\":\"" + saved.getRole().name() + "\"}"
+        );
 
         String token = jwtUtil.generateToken(saved.getUsername(), saved.getRole().name());
         return new AuthResponse(token, saved.getUsername(), saved.getRole().name(), saved.getId());

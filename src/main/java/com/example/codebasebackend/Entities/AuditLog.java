@@ -76,6 +76,6 @@ public class AuditLog {
     @Column(nullable = false)
     private OffsetDateTime updatedAt;
 
-    public enum EventType { LOGIN, LOGOUT, READ, CREATE, UPDATE, DELETE, EXPORT, INTEGRATION, PERMISSION_CHANGE, CONFIG_CHANGE, ERROR }
+    public enum EventType { LOGIN, LOGOUT, REGISTRATION, READ, CREATE, UPDATE, DELETE, EXPORT, INTEGRATION, PERMISSION_CHANGE, CONFIG_CHANGE, ERROR }
     public enum EventStatus { SUCCESS, FAILURE, PENDING }
 }

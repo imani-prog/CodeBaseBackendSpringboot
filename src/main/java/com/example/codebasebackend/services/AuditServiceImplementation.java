@@ -170,14 +170,25 @@ public class AuditServiceImplementation implements AuditService {
     }
 
     private AuditLog.EventType parseEventType(String s) {
-        try { return AuditLog.EventType.valueOf(s.trim().toUpperCase()); }
+        try {
+            String normalized = s.trim().toUpperCase(Locale.ROOT);
+            if ("REGISTRATION".equals(normalized)) {
+                // Backward compatible with existing DB check constraint that stores this as CREATE.
+                return AuditLog.EventType.CREATE;
+            }
+            return AuditLog.EventType.valueOf(normalized);
+        }
         catch (Exception ex) { throw new ResponseStatusException(BAD_REQUEST, "Invalid eventType"); }
     }
 
     private AuditLog.EventType parseOptionalEventType(String s) {
         if (!StringUtils.hasText(s) || "all".equalsIgnoreCase(s.trim())) return null;
         try {
-            return AuditLog.EventType.valueOf(s.trim().toUpperCase(Locale.ROOT));
+            String normalized = s.trim().toUpperCase(Locale.ROOT);
+            if ("REGISTRATION".equals(normalized)) {
+                return AuditLog.EventType.CREATE;
+            }
+            return AuditLog.EventType.valueOf(normalized);
         } catch (Exception ex) {
             throw new ResponseStatusException(BAD_REQUEST, "Invalid eventType");
         }
@@ -310,7 +321,6 @@ public class AuditServiceImplementation implements AuditService {
         return (root, q, cb) -> {
             if (!StringUtils.hasText(searchTerm)) return null;
             String like = "%" + searchTerm.toLowerCase(Locale.ROOT) + "%";
-            String rawLike = "%" + searchTerm + "%";
             return cb.or(
                     cb.like(cb.lower(root.get("username")), like),
                     cb.like(cb.lower(root.get("entityType")), like),
@@ -318,8 +328,8 @@ public class AuditServiceImplementation implements AuditService {
                     cb.like(cb.lower(root.get("ipAddress")), like),
                     cb.like(cb.lower(root.get("sessionId")), like),
                     cb.like(cb.lower(root.get("correlationId")), like),
-                    // details is @Lob(CLOB); avoid lower(details) which breaks on some DBs.
-                    cb.like(root.get("details"), rawLike),
+                    // details may be stored as non-text LOB on some PostgreSQL schemas;
+                    // exclude it from generic LIKE search to avoid type errors.
                     cb.like(cb.lower(root.get("errorMessage")), like)
             );
         };
@@ -340,7 +350,7 @@ public class AuditServiceImplementation implements AuditService {
         User responseUser = resolveUserForResponse(e);
 
         dto.setId(e.getId());
-        dto.setEventType(e.getEventType() != null ? e.getEventType().name() : null);
+        dto.setEventType(resolveEventTypeForResponse(e));
         dto.setEntityType(e.getEntityType());
         dto.setEntityId(StringUtils.hasText(e.getEntityId()) ? e.getEntityId() : "-");
         dto.setUserId(responseUser != null ? responseUser.getId() : null);
@@ -368,6 +378,26 @@ public class AuditServiceImplementation implements AuditService {
         dto.setDetails(e.getDetails());
         dto.setUpdatedAt(e.getUpdatedAt());
         return dto;
+    }
+
+    private String resolveEventTypeForResponse(AuditLog e) {
+        if (e.getEventType() == null) {
+            return null;
+        }
+        if (e.getEventType() == AuditLog.EventType.CREATE && isRegistrationAudit(e)) {
+            return "REGISTRATION";
+        }
+        return e.getEventType().name();
+    }
+
+    private boolean isRegistrationAudit(AuditLog e) {
+        if (!"USER".equalsIgnoreCase(e.getEntityType())) {
+            return false;
+        }
+        if (!StringUtils.hasText(e.getDetails())) {
+            return false;
+        }
+        return e.getDetails().toLowerCase(Locale.ROOT).contains("\"action\":\"register\"");
     }
 
     private User resolveUserForResponse(AuditLog e) {
