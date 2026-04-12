@@ -7,8 +7,10 @@ import com.example.codebasebackend.dto.AuditLogResponse;
 import com.example.codebasebackend.repositories.AuditLogRepository;
 import com.example.codebasebackend.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -71,19 +74,36 @@ public class AuditServiceImplementation implements AuditService {
     @Override
     @Transactional(readOnly = true)
     public Page<AuditLogResponse> search(String eventType, String entityType, String entityId, Long userId, String username,
-                                         String status, Long integrationPartnerId, OffsetDateTime from, OffsetDateTime to,
+                                         String searchTerm, String status, Long integrationPartnerId, OffsetDateTime from, OffsetDateTime to,
                                          Pageable pageable) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new ResponseStatusException(BAD_REQUEST, "'from' must be before or equal to 'to'");
+        }
+
+        AuditLog.EventType parsedEventType = parseOptionalEventType(eventType);
+        AuditLog.EventStatus parsedStatus = parseOptionalStatus(status);
+
+        Pageable safePageable = pageable;
+        if (pageable == null || pageable.getSort().isUnsorted()) {
+            safePageable = PageRequest.of(
+                    pageable != null ? pageable.getPageNumber() : 0,
+                    pageable != null ? pageable.getPageSize() : 20,
+                    Sort.by(Sort.Direction.DESC, "eventTime")
+            );
+        }
+
         Specification<AuditLog> spec = andAll(
-                eqEnum("eventType", eventType, true),
+                eqEventType(parsedEventType),
                 like("entityType", entityType),
                 like("entityId", entityId),
                 eqId("user.id", userId),
                 like("username", username),
-                eqEnum("status", status, false),
+                containsAny(searchTerm),
+                eqStatus(parsedStatus),
                 eqLong("integrationPartnerId", integrationPartnerId),
                 between("eventTime", from, to)
         );
-        return auditRepo.findAll(spec, pageable).map(this::toResponse);
+        return auditRepo.findAll(spec, safePageable).map(this::toResponse);
     }
 
     // Chain non-null specifications with AND, null-safe, avoids deprecated Specification.where
@@ -109,10 +129,28 @@ public class AuditServiceImplementation implements AuditService {
         catch (Exception ex) { throw new ResponseStatusException(BAD_REQUEST, "Invalid eventType"); }
     }
 
+    private AuditLog.EventType parseOptionalEventType(String s) {
+        if (!StringUtils.hasText(s) || "all".equalsIgnoreCase(s.trim())) return null;
+        try {
+            return AuditLog.EventType.valueOf(s.trim().toUpperCase(Locale.ROOT));
+        } catch (Exception ex) {
+            throw new ResponseStatusException(BAD_REQUEST, "Invalid eventType");
+        }
+    }
+
     private AuditLog.EventStatus parseStatus(String s) {
         if (!StringUtils.hasText(s)) return AuditLog.EventStatus.SUCCESS;
         try { return AuditLog.EventStatus.valueOf(s.trim().toUpperCase()); }
         catch (Exception ex) { throw new ResponseStatusException(BAD_REQUEST, "Invalid status"); }
+    }
+
+    private AuditLog.EventStatus parseOptionalStatus(String s) {
+        if (!StringUtils.hasText(s) || "all".equalsIgnoreCase(s.trim())) return null;
+        try {
+            return AuditLog.EventStatus.valueOf(s.trim().toUpperCase(Locale.ROOT));
+        } catch (Exception ex) {
+            throw new ResponseStatusException(BAD_REQUEST, "Invalid status");
+        }
     }
 
     private String truncate(String s, int max) { return s == null ? null : (s.length() <= max ? s : s.substring(0, max)); }
@@ -156,12 +194,12 @@ public class AuditServiceImplementation implements AuditService {
         return (root, q, cb) -> !StringUtils.hasText(value) ? null : cb.like(cb.lower(getPath(root, field).as(String.class)), "%" + value.toLowerCase() + "%");
     }
 
-    private Specification<AuditLog> eqEnum(String field, String value, boolean isEventType) {
-        if (!StringUtils.hasText(value)) return null;
-        return (root, q, cb) -> {
-            if (isEventType) return cb.equal(getPath(root, field), AuditLog.EventType.valueOf(value.trim().toUpperCase()));
-            else return cb.equal(getPath(root, field), AuditLog.EventStatus.valueOf(value.trim().toUpperCase()));
-        };
+    private Specification<AuditLog> eqEventType(AuditLog.EventType value) {
+        return (root, q, cb) -> value == null ? null : cb.equal(root.get("eventType"), value);
+    }
+
+    private Specification<AuditLog> eqStatus(AuditLog.EventStatus value) {
+        return (root, q, cb) -> value == null ? null : cb.equal(root.get("status"), value);
     }
 
     private Specification<AuditLog> eqLong(String field, Long value) {
@@ -178,6 +216,23 @@ public class AuditServiceImplementation implements AuditService {
             if (from != null && to != null) return cb.between(getPath(root, field), from, to);
             if (from != null) return cb.greaterThanOrEqualTo(getPath(root, field), from);
             return cb.lessThanOrEqualTo(getPath(root, field), to);
+        };
+    }
+
+    private Specification<AuditLog> containsAny(String searchTerm) {
+        return (root, q, cb) -> {
+            if (!StringUtils.hasText(searchTerm)) return null;
+            String like = "%" + searchTerm.toLowerCase(Locale.ROOT) + "%";
+            return cb.or(
+                    cb.like(cb.lower(root.get("username")), like),
+                    cb.like(cb.lower(root.get("entityType")), like),
+                    cb.like(cb.lower(root.get("entityId")), like),
+                    cb.like(cb.lower(root.get("ipAddress")), like),
+                    cb.like(cb.lower(root.get("sessionId")), like),
+                    cb.like(cb.lower(root.get("correlationId")), like),
+                    cb.like(cb.lower(root.get("details")), like),
+                    cb.like(cb.lower(root.get("errorMessage")), like)
+            );
         };
     }
 
@@ -199,10 +254,14 @@ public class AuditServiceImplementation implements AuditService {
         dto.setEntityId(e.getEntityId());
         dto.setUserId(e.getUser() != null ? e.getUser().getId() : null);
         dto.setUsername(e.getUsername());
+        dto.setUserDisplayName(e.getUsername());
+        dto.setUserRole(e.getUser() != null && e.getUser().getRole() != null ? e.getUser().getRole().name() : "SYSTEM");
         dto.setIpAddress(e.getIpAddress());
         dto.setEventTime(e.getEventTime());
+        dto.setPerformedAt(e.getEventTime());
         dto.setStatus(e.getStatus() != null ? e.getStatus().name() : null);
         dto.setErrorMessage(e.getErrorMessage());
+        dto.setFailureReason(e.getErrorMessage());
         dto.setIntegrationPartnerId(e.getIntegrationPartnerId());
         dto.setSessionId(e.getSessionId());
         dto.setCorrelationId(e.getCorrelationId());

@@ -31,6 +31,8 @@ public interface TelemedicineSessionRepository extends JpaRepository<Telemedicin
     @Query("SELECT s FROM TelemedicineSession s WHERE s.status = 'ACTIVE'")
     List<TelemedicineSession> findActiveSessions();
 
+    List<TelemedicineSession> findTop20ByOrderByUpdatedAtDesc();
+
     // Find by patient
     Page<TelemedicineSession> findByPatientId(Long patientId, Pageable pageable);
     List<TelemedicineSession> findByPatientIdAndStatus(Long patientId, SessionStatus status);
@@ -41,6 +43,16 @@ public interface TelemedicineSessionRepository extends JpaRepository<Telemedicin
 
     @Query("SELECT COUNT(s) FROM TelemedicineSession s WHERE s.doctor.id = :doctorId AND s.status = 'ACTIVE'")
     Integer countActiveSessionsByDoctorId(@Param("doctorId") Long doctorId);
+
+    Integer countByDoctorIdAndStartTimeBetween(Long doctorId, OffsetDateTime startDate, OffsetDateTime endDate);
+
+    @Query("SELECT COALESCE(SUM(s.actualCost), 0) FROM TelemedicineSession s WHERE " +
+           "s.doctor.id = :doctorId AND s.status = 'COMPLETED' AND s.startTime BETWEEN :startDate AND :endDate")
+    BigDecimal sumDoctorRevenueByDateRange(
+        @Param("doctorId") Long doctorId,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate
+    );
 
     // Find by date range
     @Query("SELECT s FROM TelemedicineSession s WHERE s.startTime BETWEEN :startDate AND :endDate")

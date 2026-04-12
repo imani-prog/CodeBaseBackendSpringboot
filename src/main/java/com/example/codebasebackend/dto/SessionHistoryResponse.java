@@ -18,6 +18,7 @@ public class SessionHistoryResponse {
     private LocalDate date;
     private Integer duration;
     private SessionStatus status;
+    private String statusLabel;
     private Integer rating;
     private BigDecimal cost;
     private String diagnosis;

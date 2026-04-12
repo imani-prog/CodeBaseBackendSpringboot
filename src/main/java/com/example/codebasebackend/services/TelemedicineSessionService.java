@@ -53,6 +53,8 @@ public interface TelemedicineSessionService {
     PlatformOverviewResponse getPlatformOverview();
     RevenueDataResponse getRevenueData(String period); // "daily", "weekly", "monthly"
     PlatformStatsResponse getPlatformStats();
+    List<PlatformUsageItemResponse> getPlatformUsageDistribution();
+    List<RecentActivityResponse> getRecentActivity(int limit);
     List<DoctorOnlineResponse> getOnlineDoctors();
     List<SessionHistoryResponse> getSessionHistory(String period);
 

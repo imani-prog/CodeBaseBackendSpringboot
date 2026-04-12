@@ -16,6 +16,9 @@ public class TelemedicineSessionResponse {
     private Long id;
     private String sessionId;
     private Long appointmentId;
+    private String patient;
+    private String doctor;
+    private String specialty;
 
     // Patient Information (enriched)
     private Long patientId;
@@ -39,6 +42,10 @@ public class TelemedicineSessionResponse {
     private PlatformType platform;
     private SessionStatus status;
     private Priority priority;
+    private String sessionTypeLabel;
+    private String platformLabel;
+    private String statusLabel;
+    private String priorityLabel;
 
     // Timing
     private OffsetDateTime startTime;

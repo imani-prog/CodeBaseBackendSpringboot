@@ -25,6 +25,7 @@ public class DoctorOnlineResponse {
     private Integer totalSessions;
 
     private DoctorStatus currentStatus;
+    private String currentStatusLabel;
     private OffsetDateTime nextAppointment;
 
     private Integer avgSessionDuration; // minutes

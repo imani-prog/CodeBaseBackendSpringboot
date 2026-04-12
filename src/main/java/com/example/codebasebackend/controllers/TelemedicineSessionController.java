@@ -231,6 +231,19 @@ public class TelemedicineSessionController {
     }
 
 
+    @GetMapping("/usage-distribution")
+    public ResponseEntity<List<PlatformUsageItemResponse>> getUsageDistribution() {
+        return ResponseEntity.ok(sessionService.getPlatformUsageDistribution());
+    }
+
+
+    @GetMapping("/recent-activity")
+    public ResponseEntity<List<RecentActivityResponse>> getRecentActivity(
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(sessionService.getRecentActivity(limit));
+    }
+
+
     @GetMapping("/doctors/online")
     public ResponseEntity<List<DoctorOnlineResponse>> getOnlineDoctors() {
         List<DoctorOnlineResponse> doctors = sessionService.getOnlineDoctors();

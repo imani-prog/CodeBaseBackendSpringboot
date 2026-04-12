@@ -30,6 +30,7 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
     private final HospitalRepository hospitalRepository;
+    private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -62,6 +63,11 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                     "Hospital not found with ID: " + request.getHospitalId()));
         }
 
+        Appointment linkedAppointment = resolveAndValidateTelemedicineAppointment(request, patient, doctor, null);
+        if (hospital == null && linkedAppointment != null && linkedAppointment.getHospital() != null) {
+            hospital = linkedAppointment.getHospital();
+        }
+
         // Generate unique session ID
         String sessionId = generateSessionId();
 
@@ -70,6 +76,7 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
         session.setSessionId(sessionId);
         session.setPatient(patient);
         session.setDoctor(doctor);
+        session.setAppointment(linkedAppointment);
         session.setHospital(hospital);
         session.setSessionType(request.getSessionType());
         session.setPlatform(request.getPlatform());
@@ -133,6 +140,11 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                 "Only scheduled sessions can be updated");
         }
 
+        Appointment linkedAppointment = resolveAndValidateTelemedicineAppointment(request, session.getPatient(), session.getDoctor(), session.getId());
+        if (linkedAppointment != null) {
+            session.setAppointment(linkedAppointment);
+        }
+
         // Update fields
         session.setStartTime(request.getStartTime());
         session.setPlannedDuration(request.getPlannedDuration());
@@ -175,7 +187,20 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                 "Session cannot be started in current status: " + session.getStatus());
         }
 
+        boolean freshStart = session.getStatus() == SessionStatus.SCHEDULED;
         session.startSession();
+
+        Doctor doctor = session.getDoctor();
+        if (doctor != null) {
+            doctor.updateStatus(DoctorStatus.BUSY);
+            if (freshStart) {
+                doctor.incrementTotalSessions();
+            }
+            doctorRepository.save(doctor);
+        }
+
+        syncAppointmentStatusFromSession(session, Appointment.AppointmentStatus.CHECKED_IN, false);
+
         TelemedicineSession updatedSession = sessionRepository.save(session);
         log.info("Session started: {}", session.getSessionId());
 
@@ -202,6 +227,13 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                 "Session not found with ID: " + id));
 
         session.resumeSession();
+
+        Doctor doctor = session.getDoctor();
+        if (doctor != null) {
+            doctor.updateStatus(DoctorStatus.BUSY);
+            doctorRepository.save(doctor);
+        }
+
         TelemedicineSession updatedSession = sessionRepository.save(session);
         log.info("Session resumed: {}", session.getSessionId());
 
@@ -227,6 +259,15 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
         session.setDoctorNotes(doctorNotes);
         session.setPaymentStatus("PAID");
 
+        Doctor doctor = session.getDoctor();
+        if (doctor != null) {
+            doctor.incrementCompletedSessions();
+            doctor.updateStatus(DoctorStatus.AVAILABLE);
+            doctorRepository.save(doctor);
+        }
+
+        syncAppointmentStatusFromSession(session, Appointment.AppointmentStatus.COMPLETED, true);
+
         TelemedicineSession updatedSession = sessionRepository.save(session);
         log.info("Session completed: {}", session.getSessionId());
 
@@ -246,6 +287,15 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
         }
 
         session.cancelSession(null, reason);
+
+        Doctor doctor = session.getDoctor();
+        if (doctor != null && doctor.getStatus() == DoctorStatus.BUSY) {
+            doctor.updateStatus(DoctorStatus.AVAILABLE);
+            doctorRepository.save(doctor);
+        }
+
+        syncAppointmentStatusFromSession(session, Appointment.AppointmentStatus.CANCELED, false);
+
         TelemedicineSession updatedSession = sessionRepository.save(session);
         log.info("Session cancelled: {}", session.getSessionId());
 
@@ -259,6 +309,15 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                 "Session not found with ID: " + id));
 
         session.terminateSession(null, reason);
+
+        Doctor doctor = session.getDoctor();
+        if (doctor != null && doctor.getStatus() == DoctorStatus.BUSY) {
+            doctor.updateStatus(DoctorStatus.AVAILABLE);
+            doctorRepository.save(doctor);
+        }
+
+        syncAppointmentStatusFromSession(session, Appointment.AppointmentStatus.CANCELED, false);
+
         TelemedicineSession updatedSession = sessionRepository.save(session);
         log.info("Session terminated: {}", session.getSessionId());
 
@@ -443,9 +502,82 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
 
     @Override
     @Transactional(readOnly = true)
+    public List<PlatformUsageItemResponse> getPlatformUsageDistribution() {
+        List<Object[]> stats = sessionRepository.findPlatformStatistics();
+        int totalSessions = stats.stream().mapToInt(row -> ((Number) row[1]).intValue()).sum();
+
+        return stats.stream().map(row -> {
+            PlatformType platform = (PlatformType) row[0];
+            int sessions = ((Number) row[1]).intValue();
+            int avgDuration = row[2] != null ? ((Number) row[2]).intValue() : 0;
+            double percentage = totalSessions > 0 ? (sessions * 100.0 / totalSessions) : 0.0;
+
+            return PlatformUsageItemResponse.builder()
+                    .platform(toPlatformLabel(platform))
+                    .sessions(sessions)
+                    .percentage(percentage)
+                    .avgDurationMinutes(avgDuration)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecentActivityResponse> getRecentActivity(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 50));
+        List<RecentActivityResponse> items = new ArrayList<>();
+
+        List<TelemedicineSession> recentSessions = sessionRepository.findTop20ByOrderByUpdatedAtDesc();
+        for (TelemedicineSession session : recentSessions) {
+            String title = null;
+            String subtitle = null;
+            if (session.getStatus() == SessionStatus.COMPLETED) {
+                title = "Session Completed";
+                subtitle = session.getDoctor().getFullName() + " - "
+                        + session.getPatient().getFirstName() + " " + session.getPatient().getLastName();
+            } else if (session.getStatus() == SessionStatus.SCHEDULED) {
+                title = "Session Scheduled";
+                subtitle = "New appointment for " + session.getStartTime();
+            }
+
+            if (title != null) {
+                items.add(RecentActivityResponse.builder()
+                        .activityType("SESSION")
+                        .title(title)
+                        .subtitle(subtitle)
+                        .activityAt(session.getUpdatedAt())
+                        .build());
+            }
+        }
+
+        List<Doctor> doctors = doctorRepository
+                .findTop20ByActiveTrueAndStatusInAndLastStatusUpdateIsNotNullOrderByLastStatusUpdateDesc(
+                        Arrays.asList(DoctorStatus.AVAILABLE, DoctorStatus.BUSY)
+                );
+
+        for (Doctor doctor : doctors) {
+            items.add(RecentActivityResponse.builder()
+                    .activityType("DOCTOR")
+                    .title("Doctor Joined")
+                    .subtitle(doctor.getFullName() + " is now online")
+                    .activityAt(doctor.getLastStatusUpdate())
+                    .build());
+        }
+
+        return items.stream()
+                .filter(item -> item.getActivityAt() != null)
+                .sorted(Comparator.comparing(RecentActivityResponse::getActivityAt).reversed())
+                .limit(safeLimit)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<DoctorOnlineResponse> getOnlineDoctors() {
         List<DoctorStatus> onlineStatuses = Arrays.asList(DoctorStatus.AVAILABLE, DoctorStatus.BUSY);
         List<Doctor> onlineDoctors = doctorRepository.findByActiveTrueAndStatusIn(onlineStatuses);
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime dayStart = now.toLocalDate().atStartOfDay(now.getOffset()).toOffsetDateTime();
 
         return onlineDoctors.stream()
             .map(doctor -> DoctorOnlineResponse.builder()
@@ -456,9 +588,11 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                 .specialty(doctor.getSpecialty() != null ? doctor.getSpecialty().getName() : "General")
                 .experience(doctor.getExperience())
                 .rating(doctor.getRating())
-                .sessionsToday(0) // Can be calculated from sessions
+                .sessionsToday(sessionRepository.countByDoctorIdAndStartTimeBetween(doctor.getId(), dayStart, now))
                 .totalSessions(doctor.getTotalSessions())
                 .currentStatus(doctor.getStatus())
+                .currentStatusLabel(doctor.getStatus() != null ? doctor.getStatus().name().toLowerCase() : null)
+                .earnings(sessionRepository.sumDoctorRevenueByDateRange(doctor.getId(), dayStart, now))
                 .languages(doctor.getLanguages())
                 .location(doctor.getLocation())
                 .email(doctor.getEmail())
@@ -497,6 +631,7 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                 .date(session.getStartTime().toLocalDate())
                 .duration(session.getDuration())
                 .status(session.getStatus())
+                .statusLabel(session.getStatus() != null ? session.getStatus().name().toLowerCase() : null)
                 .rating(session.getRating())
                 .cost(session.getActualCost())
                 .diagnosis(session.getDiagnosis())
@@ -551,21 +686,27 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
     }
 
     private TelemedicineSessionResponse mapToResponse(TelemedicineSession session) {
+        String patientName = session.getPatient().getFirstName() + " " + session.getPatient().getLastName();
+        String doctorName = session.getDoctor().getFullName();
+        String specialtyName = session.getDoctor().getSpecialty() != null ? session.getDoctor().getSpecialty().getName() : "General";
+
         return TelemedicineSessionResponse.builder()
             .id(session.getId())
             .sessionId(session.getSessionId())
             .appointmentId(session.getAppointment() != null ? session.getAppointment().getId() : null)
+            .patient(patientName)
+            .doctor(doctorName)
+            .specialty(specialtyName)
             // Patient info
             .patientId(session.getPatient().getId())
-            .patientName(session.getPatient().getFirstName() + " " + session.getPatient().getLastName())
+            .patientName(patientName)
             .patientEmail(session.getPatient().getEmail())
             .patientPhone(session.getPatient().getPhone())
             // Doctor info
             .doctorId(session.getDoctor().getId())
-            .doctorName(session.getDoctor().getFullName())
+            .doctorName(doctorName)
             .doctorPhoto(session.getDoctor().getPhotoUrl())
-            .doctorSpecialty(session.getDoctor().getSpecialty() != null ?
-                session.getDoctor().getSpecialty().getName() : "General")
+            .doctorSpecialty(specialtyName)
             .doctorRating(session.getDoctor().getRating())
             // Hospital info
             .hospitalId(session.getHospital() != null ? session.getHospital().getId() : null)
@@ -575,6 +716,10 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
             .platform(session.getPlatform())
             .status(session.getStatus())
             .priority(session.getPriority())
+            .sessionTypeLabel(session.getSessionType() != null ? session.getSessionType().name().toLowerCase() : null)
+            .platformLabel(session.getPlatform() != null ? session.getPlatform().name().toLowerCase() : null)
+            .statusLabel(session.getStatus() != null ? session.getStatus().name().toLowerCase() : null)
+            .priorityLabel(session.getPriority() != null ? session.getPriority().name().toLowerCase() : null)
             // Timing
             .startTime(session.getStartTime())
             .actualStartTime(session.getActualStartTime())
@@ -615,5 +760,89 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
             .createdByUserName(session.getCreatedBy() != null ?
                 session.getCreatedBy().getFullName() : null)
             .build();
+    }
+
+    private String toPlatformLabel(PlatformType platformType) {
+        if (platformType == null) return "Unknown";
+        return switch (platformType) {
+            case VIDEO_CALL -> "Video Call";
+            case AUDIO_CALL -> "Audio Call";
+            case MESSAGING -> "Messaging";
+        };
+    }
+
+    private Appointment resolveAndValidateTelemedicineAppointment(
+            TelemedicineSessionRequest request,
+            Patient patient,
+            Doctor doctor,
+            Long currentSessionId
+    ) {
+        Appointment appointment = null;
+
+        if (request.getAppointmentId() != null) {
+            appointment = appointmentRepository.findById(request.getAppointmentId())
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
+                            "Appointment not found with ID: " + request.getAppointmentId()));
+        } else {
+            appointment = appointmentRepository
+                    .findFirstByPatientIdAndDoctorIdAndScheduledStartAndType(
+                            request.getPatientId(),
+                            request.getDoctorId(),
+                            request.getStartTime(),
+                            Appointment.AppointmentType.TELEMEDICINE
+                    )
+                    .orElse(null);
+        }
+
+        if (appointment == null) {
+            return null;
+        }
+
+        if (appointment.getType() != Appointment.AppointmentType.TELEMEDICINE) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Telemedicine session must be linked to an appointment with type TELEMEDICINE");
+        }
+        if (appointment.getProviderRole() != Appointment.ProviderRole.DOCTOR || appointment.getDoctor() == null) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Telemedicine appointment must have providerRole DOCTOR");
+        }
+        if (!appointment.getDoctor().getId().equals(doctor.getId())) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Doctor on telemedicine session must match appointment doctor");
+        }
+        if (!appointment.getPatient().getId().equals(patient.getId())) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Patient on telemedicine session must match appointment patient");
+        }
+
+        final Appointment finalAppointment = appointment;
+        sessionRepository.findByAppointmentId(finalAppointment.getId()).ifPresent(existing -> {
+            if (currentSessionId == null || !existing.getId().equals(currentSessionId)) {
+                throw new ResponseStatusException(CONFLICT,
+                        "A telemedicine session already exists for appointment ID: " + finalAppointment.getId());
+            }
+        });
+
+        return appointment;
+    }
+
+    private void syncAppointmentStatusFromSession(
+            TelemedicineSession session,
+            Appointment.AppointmentStatus status,
+            boolean setCheckOutTime
+    ) {
+        Appointment appointment = session.getAppointment();
+        if (appointment == null) {
+            return;
+        }
+
+        appointment.setStatus(status);
+        if (status == Appointment.AppointmentStatus.CHECKED_IN && appointment.getCheckInTime() == null) {
+            appointment.setCheckInTime(OffsetDateTime.now());
+        }
+        if (setCheckOutTime) {
+            appointment.setCheckOutTime(OffsetDateTime.now());
+        }
+        appointmentRepository.save(appointment);
     }
 }

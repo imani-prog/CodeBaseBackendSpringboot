@@ -15,6 +15,7 @@ public interface AuditService {
                                   String entityId,
                                   Long userId,
                                   String username,
+                                  String searchTerm,
                                   String status,
                                   Long integrationPartnerId,
                                   OffsetDateTime from,

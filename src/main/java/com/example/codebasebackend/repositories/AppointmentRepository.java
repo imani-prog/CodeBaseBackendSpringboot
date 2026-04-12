@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
     // Existing methods
@@ -49,5 +50,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         @Param("providerRole") Appointment.ProviderRole providerRole,
         @Param("doctorId") Long doctorId,
         @Param("chwId") Long chwId
+    );
+
+    Optional<Appointment> findFirstByPatientIdAndDoctorIdAndScheduledStartAndType(
+        Long patientId,
+        Long doctorId,
+        OffsetDateTime scheduledStart,
+        Appointment.AppointmentType type
     );
 }

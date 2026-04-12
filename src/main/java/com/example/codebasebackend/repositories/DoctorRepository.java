@@ -32,6 +32,8 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     @Query("SELECT d FROM Doctor d WHERE d.active = true AND d.status IN :statuses")
     List<Doctor> findByActiveTrueAndStatusIn(@Param("statuses") List<DoctorStatus> statuses);
 
+    List<Doctor> findTop20ByActiveTrueAndStatusInAndLastStatusUpdateIsNotNullOrderByLastStatusUpdateDesc(List<DoctorStatus> statuses);
+
     @Query("SELECT d FROM Doctor d WHERE " +
            "d.active = true AND " +
            "(LOWER(d.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +

@@ -16,6 +16,8 @@ import java.util.List;
 @Builder
 public class TelemedicineSessionRequest {
 
+    private Long appointmentId;
+
     @NotNull(message = "Patient ID is required")
     private Long patientId;
 

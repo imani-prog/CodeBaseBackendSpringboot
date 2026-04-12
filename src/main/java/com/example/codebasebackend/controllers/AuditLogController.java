@@ -7,8 +7,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -16,6 +19,7 @@ import java.time.OffsetDateTime;
 @RestController
 @RequestMapping("/api/audit-logs")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AuditLogController {
 
     private final AuditService auditService;
@@ -36,14 +40,15 @@ public class AuditLogController {
                                                          @RequestParam(required = false) String entityId,
                                                          @RequestParam(required = false) Long userId,
                                                          @RequestParam(required = false) String username,
+                                                         @RequestParam(required = false) String searchTerm,
                                                          @RequestParam(required = false) String status,
                                                          @RequestParam(required = false) Long integrationPartnerId,
                                                          @RequestParam(required = false)
                                                          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
                                                          @RequestParam(required = false)
                                                          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
-                                                         Pageable pageable) {
-        return ResponseEntity.ok(auditService.search(eventType, entityType, entityId, userId, username, status,
+                                                         @PageableDefault(size = 20, sort = "eventTime", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(auditService.search(eventType, entityType, entityId, userId, username, searchTerm, status,
                 integrationPartnerId, from, to, pageable));
     }
 
