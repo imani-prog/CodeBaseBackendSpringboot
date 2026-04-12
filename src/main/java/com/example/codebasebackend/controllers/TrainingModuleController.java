@@ -42,12 +42,6 @@ public class TrainingModuleController {
     }
 
 
-//    @Auditable(eventType = AuditLog.EventType.CREATE, entityType = "TrainingModule", entityIdExpression = "#result.body.id", includeArgs = true, includeResult = true)
-//    @PostMapping
-//    public ResponseEntity<TrainingModule> createTrainingModule(@Valid @RequestBody TrainingModule trainingModule) {
-//        TrainingModule saved = trainingModuleService.createTrainingModule(trainingModule);
-//        return ResponseEntity.ok(saved);
-//    }
 
     // Update training module
     @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "TrainingModule", entityIdExpression = "#id", includeArgs = true, includeResult = true)

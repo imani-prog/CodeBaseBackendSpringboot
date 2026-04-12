@@ -18,6 +18,7 @@ public class TrainingModuleServiceImplementation implements TrainingModuleServic
 
     @Override
     public TrainingModule createTrainingModule(TrainingModule trainingModule) {
+
         if (trainingModule.getCourseModules() == null || trainingModule.getCourseModules().size() < 5) {
             throw new IllegalArgumentException("Course must have at least 5 modules");
         }
