@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -99,8 +99,8 @@ public class ServiceOrderServiceImplementation implements ServiceOrderService {
         BillingRequest billReq = new BillingRequest();
         billReq.setPatientId(patient.getId());
         billReq.setHospitalId(hospital != null ? hospital.getId() : null);
-        billReq.setServiceDate(OffsetDateTime.now());
-        billReq.setDueDate(OffsetDateTime.now().plusDays(14));
+        billReq.setServiceDate(LocalDate.now());
+        billReq.setDueDate(LocalDate.now().plusDays(14));
         billReq.setSubtotal(subtotal);
         billReq.setDiscount(discount);
         billReq.setTax(tax);

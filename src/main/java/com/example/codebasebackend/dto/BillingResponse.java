@@ -1,6 +1,7 @@
 package com.example.codebasebackend.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 public class BillingResponse {
@@ -9,8 +10,8 @@ public class BillingResponse {
     private Long patientId;
     private Long hospitalId;
     private OffsetDateTime issueDate;
-    private OffsetDateTime serviceDate;
-    private OffsetDateTime dueDate;
+    private LocalDate serviceDate;
+    private LocalDate dueDate;
     private BigDecimal subtotal;
     private BigDecimal discount;
     private BigDecimal tax;
@@ -33,10 +34,10 @@ public class BillingResponse {
     public void setHospitalId(Long hospitalId) { this.hospitalId = hospitalId; }
     public OffsetDateTime getIssueDate() { return issueDate; }
     public void setIssueDate(OffsetDateTime issueDate) { this.issueDate = issueDate; }
-    public OffsetDateTime getServiceDate() { return serviceDate; }
-    public void setServiceDate(OffsetDateTime serviceDate) { this.serviceDate = serviceDate; }
-    public OffsetDateTime getDueDate() { return dueDate; }
-    public void setDueDate(OffsetDateTime dueDate) { this.dueDate = dueDate; }
+    public LocalDate getServiceDate() { return serviceDate; }
+    public void setServiceDate(LocalDate serviceDate) { this.serviceDate = serviceDate; }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
     public BigDecimal getSubtotal() { return subtotal; }
     public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
     public BigDecimal getDiscount() { return discount; }

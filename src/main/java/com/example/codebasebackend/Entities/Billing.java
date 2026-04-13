@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -51,9 +52,8 @@ public class Billing {
     @Column(nullable = false)
     private OffsetDateTime issueDate;
 
-    private OffsetDateTime serviceDate;
-
-    private OffsetDateTime dueDate;
+    private LocalDate serviceDate;
+    private LocalDate dueDate;
 
     @DecimalMin(value = "0.0", inclusive = true)
     @Column(precision = 14, scale = 2)

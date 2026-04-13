@@ -1,14 +1,14 @@
 package com.example.codebasebackend.dto;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.LocalDate;
 
 public class BillingRequest {
     private Long patientId;
     private Long hospitalId; // optional
     private String invoiceNumber; // optional; can be generated
-    private OffsetDateTime serviceDate;
-    private OffsetDateTime dueDate;
+    private LocalDate serviceDate;
+    private LocalDate dueDate;
     private BigDecimal subtotal;
     private BigDecimal discount;
     private BigDecimal tax;
@@ -23,10 +23,10 @@ public class BillingRequest {
     public void setHospitalId(Long hospitalId) { this.hospitalId = hospitalId; }
     public String getInvoiceNumber() { return invoiceNumber; }
     public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
-    public OffsetDateTime getServiceDate() { return serviceDate; }
-    public void setServiceDate(OffsetDateTime serviceDate) { this.serviceDate = serviceDate; }
-    public OffsetDateTime getDueDate() { return dueDate; }
-    public void setDueDate(OffsetDateTime dueDate) { this.dueDate = dueDate; }
+    public LocalDate getServiceDate() { return serviceDate; }
+    public void setServiceDate(LocalDate serviceDate) { this.serviceDate = serviceDate; }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
     public BigDecimal getSubtotal() { return subtotal; }
     public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
     public BigDecimal getDiscount() { return discount; }
