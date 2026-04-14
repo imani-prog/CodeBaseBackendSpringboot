@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -67,7 +68,10 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setScheduledStart(request.getScheduledStart());
         appt.setScheduledEnd(request.getScheduledEnd());
         appt.setProviderName(request.getProviderName());
-        applyProvider(request, appt);
+        Appointment.AppointmentType requestedType = request.getType() != null ? parseType(request.getType()) : null;
+        appt.setType(requestedType);
+        applyProvider(request, appt, requestedType);
+        validateProviderRoleAndType(appt.getProviderRole(), appt.getType());
         appt.setRoom(request.getRoom());
         appt.setLocation(request.getLocation());
         appt.setReason(request.getReason());
@@ -78,9 +82,6 @@ public class AppointmentServiceImplementation implements AppointmentService {
             appt.setStatus(parseStatus(request.getStatus()));
         } else {
             appt.setStatus(Appointment.AppointmentStatus.SCHEDULED);
-        }
-        if (request.getType() != null) {
-            appt.setType(parseType(request.getType()));
         }
         Appointment saved = appointmentRepository.save(appt);
         syncTelemedicineSession(saved);
@@ -119,7 +120,12 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setScheduledStart(request.getScheduledStart());
         appt.setScheduledEnd(request.getScheduledEnd());
         appt.setProviderName(request.getProviderName());
-        applyProvider(request, appt);
+        Appointment.AppointmentType requestedType = request.getType() != null ? parseType(request.getType()) : appt.getType();
+        if (request.getType() != null) {
+            appt.setType(requestedType);
+        }
+        applyProvider(request, appt, requestedType);
+        validateProviderRoleAndType(appt.getProviderRole(), requestedType);
         appt.setRoom(request.getRoom());
         appt.setLocation(request.getLocation());
         appt.setReason(request.getReason());
@@ -127,7 +133,6 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appt.setReminderSent(request.getReminderSent());
         appt.setAppointmentCode(orGenerateCode(request.getAppointmentCode()));
         if (request.getStatus() != null) appt.setStatus(parseStatus(request.getStatus()));
-        if (request.getType() != null) appt.setType(parseType(request.getType()));
 
         Appointment saved = appointmentRepository.save(appt);
         syncTelemedicineSession(saved);
@@ -208,6 +213,22 @@ public class AppointmentServiceImplementation implements AppointmentService {
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> listAllowedTypes(String providerRole) {
+        Appointment.ProviderRole role = null;
+        if (providerRole != null && !providerRole.isBlank() && !providerRole.equalsIgnoreCase("all")) {
+            role = parseProviderRole(providerRole);
+        }
+        final Appointment.ProviderRole effectiveRole = role;
+
+        return EnumSet.allOf(Appointment.AppointmentType.class)
+                .stream()
+                .filter(type -> effectiveRole == null || isTypeAllowedForRole(type, effectiveRole))
+                .map(Enum::name)
+                .toList();
     }
 
     @Override
@@ -386,7 +407,7 @@ public class AppointmentServiceImplementation implements AppointmentService {
         catch (IllegalArgumentException ex) { throw new ResponseStatusException(BAD_REQUEST, "Invalid providerRole"); }
     }
 
-    private void applyProvider(AppointmentRequest request, Appointment appointment) {
+    private void applyProvider(AppointmentRequest request, Appointment appointment, Appointment.AppointmentType appointmentType) {
         if (request.getDoctorId() != null && request.getChwId() != null) {
             throw new ResponseStatusException(BAD_REQUEST, "Only one provider can be linked to an appointment");
         }
@@ -396,9 +417,17 @@ public class AppointmentServiceImplementation implements AppointmentService {
             providerRoleText = Appointment.ProviderRole.DOCTOR.name();
         } else if ((providerRoleText == null || providerRoleText.isBlank()) && request.getChwId() != null) {
             providerRoleText = Appointment.ProviderRole.CHW.name();
+        } else if (providerRoleText == null || providerRoleText.isBlank()) {
+            Appointment.ProviderRole inferredRole = inferProviderRoleFromType(appointmentType);
+            if (inferredRole != null) {
+                providerRoleText = inferredRole.name();
+            }
         }
 
         if (providerRoleText == null || providerRoleText.isBlank()) {
+            if (request.getProviderId() != null) {
+                throw new ResponseStatusException(BAD_REQUEST, "providerRole is required when providerId is provided");
+            }
             appointment.setProviderRole(null);
             appointment.setChw(null);
             appointment.setDoctor(null);
@@ -409,9 +438,14 @@ public class AppointmentServiceImplementation implements AppointmentService {
         appointment.setProviderRole(providerRole);
 
         if (providerRole == Appointment.ProviderRole.CHW) {
+            if (request.getDoctorId() != null) {
+                throw new ResponseStatusException(BAD_REQUEST, "doctorId cannot be used when providerRole is CHW");
+            }
             Long providerId = request.getChwId() != null ? request.getChwId() : request.getProviderId();
             if (providerId == null) {
-                throw new ResponseStatusException(BAD_REQUEST, "providerId is required when providerRole is CHW");
+                appointment.setChw(null);
+                appointment.setDoctor(null);
+                return;
             }
             CommunityHealthWorkers chw = communityHealthWorkersRepository.findById(providerId)
                     .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "CHW not found"));
@@ -424,9 +458,14 @@ public class AppointmentServiceImplementation implements AppointmentService {
         }
 
         if (providerRole == Appointment.ProviderRole.DOCTOR) {
+            if (request.getChwId() != null) {
+                throw new ResponseStatusException(BAD_REQUEST, "chwId cannot be used when providerRole is DOCTOR");
+            }
             Long providerId = request.getDoctorId() != null ? request.getDoctorId() : request.getProviderId();
             if (providerId == null) {
-                throw new ResponseStatusException(BAD_REQUEST, "providerId is required when providerRole is DOCTOR");
+                appointment.setDoctor(null);
+                appointment.setChw(null);
+                return;
             }
             Doctor doctor = doctorRepository.findById(providerId)
                     .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Doctor not found"));
@@ -440,6 +479,48 @@ public class AppointmentServiceImplementation implements AppointmentService {
 
         appointment.setChw(null);
         appointment.setDoctor(null);
+    }
+
+    private Appointment.ProviderRole inferProviderRoleFromType(Appointment.AppointmentType type) {
+        if (type == null) {
+            return null;
+        }
+        if (type == Appointment.AppointmentType.HOME_VISIT) {
+            return Appointment.ProviderRole.CHW;
+        }
+        if (isTelemedicineType(type)) {
+            return Appointment.ProviderRole.DOCTOR;
+        }
+        return null;
+    }
+
+    private void validateProviderRoleAndType(Appointment.ProviderRole providerRole, Appointment.AppointmentType type) {
+        if (providerRole == null || type == null) {
+            return;
+        }
+        if (!isTypeAllowedForRole(type, providerRole)) {
+            if (type == Appointment.AppointmentType.HOME_VISIT) {
+                throw new ResponseStatusException(BAD_REQUEST, "HOME_VISIT appointments must use providerRole CHW");
+            }
+            if (isTelemedicineType(type)) {
+                throw new ResponseStatusException(BAD_REQUEST, "TELEMEDICINE/TELEHEALTH appointments must use providerRole DOCTOR");
+            }
+        }
+    }
+
+    private boolean isTypeAllowedForRole(Appointment.AppointmentType type, Appointment.ProviderRole role) {
+        if (type == Appointment.AppointmentType.HOME_VISIT) {
+            return role == Appointment.ProviderRole.CHW;
+        }
+        if (isTelemedicineType(type)) {
+            return role == Appointment.ProviderRole.DOCTOR;
+        }
+        return true;
+    }
+
+    private boolean isTelemedicineType(Appointment.AppointmentType type) {
+        return type == Appointment.AppointmentType.TELEMEDICINE
+                || type == Appointment.AppointmentType.TELEHEALTH;
     }
 
     private AppointmentResponse toResponse(Appointment a) {
@@ -536,17 +617,14 @@ public class AppointmentServiceImplementation implements AppointmentService {
             return;
         }
 
-        boolean isTelemedicineType = appointment.getType() == Appointment.AppointmentType.TELEMEDICINE
-                || appointment.getType() == Appointment.AppointmentType.TELEHEALTH;
-
-        if (!isTelemedicineType) {
+        if (!isTelemedicineType(appointment.getType())) {
             telemedicineSessionRepository.deleteByAppointmentId(appointment.getId());
             return;
         }
 
         if (appointment.getProviderRole() != Appointment.ProviderRole.DOCTOR || appointment.getDoctor() == null) {
-            throw new ResponseStatusException(BAD_REQUEST,
-                    "Telemedicine appointments must be linked to a DOCTOR provider");
+            telemedicineSessionRepository.deleteByAppointmentId(appointment.getId());
+            return;
         }
 
         TelemedicineSession session = telemedicineSessionRepository

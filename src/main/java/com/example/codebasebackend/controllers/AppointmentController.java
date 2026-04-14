@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -62,6 +61,12 @@ public class AppointmentController {
     @GetMapping("/status/{status}")
     public ResponseEntity<List<AppointmentResponse>> byStatus(@PathVariable String status) {
         return ResponseEntity.ok(appointmentService.listByStatus(Appointment.AppointmentStatus.valueOf(status.toUpperCase())));
+    }
+
+    @GetMapping("/types")
+    public ResponseEntity<List<String>> allowedTypes(
+            @RequestParam(required = false) String providerRole) {
+        return ResponseEntity.ok(appointmentService.listAllowedTypes(providerRole));
     }
 
     @GetMapping("/range")
