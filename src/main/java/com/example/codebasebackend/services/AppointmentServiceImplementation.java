@@ -393,13 +393,23 @@ public class AppointmentServiceImplementation implements AppointmentService {
 
     private Appointment.AppointmentType parseType(String s) {
         try {
-            String value = s.toUpperCase();
-            if ("TELEMED".equals(value)) {
+            if (s == null || s.isBlank()) {
+                throw new IllegalArgumentException("blank type");
+            }
+            String value = s.trim().toUpperCase().replace('-', '_').replace(' ', '_');
+            if ("TELEMED".equals(value) || "VIDEO_CALL".equals(value)) {
                 value = "TELEMEDICINE";
+            } else if ("PHONE_CALL".equals(value)) {
+                value = "TELEHEALTH";
+            } else if ("IN_PERSON".equals(value) || "INPERSON".equals(value)) {
+                value = "CONSULTATION";
             }
             return Appointment.AppointmentType.valueOf(value);
         }
-        catch (IllegalArgumentException ex) { throw new ResponseStatusException(BAD_REQUEST, "Invalid type"); }
+        catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Invalid type. Use one of: CONSULTATION, FOLLOW_UP, HOME_VISIT, SURGERY, LAB_TEST, IMAGING, VACCINATION, TELEHEALTH, TELEMEDICINE, OTHER");
+        }
     }
 
     private Appointment.ProviderRole parseProviderRole(String s) {
