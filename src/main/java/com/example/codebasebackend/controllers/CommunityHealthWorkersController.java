@@ -38,6 +38,7 @@ public class CommunityHealthWorkersController {
     }
 
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
+    @PreAuthorize("hasRole('CHW')")
     @GetMapping("/me")
     public ResponseEntity<CommunityHealthWorkerResponse> getMyChwProfile(Authentication authentication) {
         CommunityHealthWorkers chw = communityHealthWorkersRepository.findByUserUsername(authentication.getName())
@@ -46,14 +47,14 @@ public class CommunityHealthWorkersController {
     }
 
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW", entityIdExpression = "#id")
-    @PreAuthorize("hasRole('ADMIN') or @chwSecurity.isOwner(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('PATIENT') or @chwSecurity.isOwner(#id, authentication)")
     @GetMapping("/{id}")
     public ResponseEntity<CommunityHealthWorkerResponse> get(@PathVariable Long id) {
         return ResponseEntity.ok(service.get(id));
     }
 
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     @GetMapping
     public ResponseEntity<List<CommunityHealthWorkerResponse>> list() {
         return ResponseEntity.ok(service.list());
@@ -84,7 +85,7 @@ public class CommunityHealthWorkersController {
     }
 
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CHW', 'PATIENT')")
     @GetMapping("/nearest")
     public ResponseEntity<CommunityHealthWorkerResponse> nearest(
             @RequestParam(value = "lat", required = false) java.math.BigDecimal lat,
@@ -119,7 +120,7 @@ public class CommunityHealthWorkersController {
      * Get CHWs by region
      */
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CHW', 'PATIENT')")
     @GetMapping("/by-region/{region}")
     public ResponseEntity<List<CommunityHealthWorkerResponse>> getByRegion(
             @PathVariable String region) {
@@ -130,7 +131,7 @@ public class CommunityHealthWorkersController {
      * Get CHWs by status
      */
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CHW', 'PATIENT')")
     @GetMapping("/by-status/{status}")
     public ResponseEntity<List<CommunityHealthWorkerResponse>> getByStatus(
             @PathVariable String status) {
@@ -146,7 +147,7 @@ public class CommunityHealthWorkersController {
      * Get CHWs with pagination and filtering
      */
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "CHW")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('CHW')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CHW', 'PATIENT')")
     @GetMapping("/search")
     public ResponseEntity<Page<CommunityHealthWorkerResponse>> search(
             @RequestParam(required = false) String region,

@@ -19,42 +19,48 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/ambulances")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AmbulanceController {
 
     private final AmbulanceService ambulanceService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceResponse> addAmbulance(@RequestBody Ambulances ambulance) {
         return ResponseEntity.ok(toResponse(ambulanceService.addAmbulance(ambulance)));
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> getAllAmbulances() {
         return ResponseEntity.ok(ambulanceService.getAllAmbulances().stream().map(this::toResponse).toList());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<AmbulanceResponse> getAmbulanceById(@PathVariable Long id) {
         return ResponseEntity.ok(toResponse(ambulanceService.getAmbulanceById(id)));
     }
 
     @GetMapping("/by-plate/{vehiclePlate}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<AmbulanceResponse> getAmbulanceByVehiclePlate(@PathVariable String vehiclePlate) {
         return ResponseEntity.ok(toResponse(ambulanceService.getAmbulanceByVehiclePlate(vehiclePlate)));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceResponse> updateAmbulance(@PathVariable Long id, @RequestBody Ambulances ambulance) {
         return ResponseEntity.ok(toResponse(ambulanceService.updateAmbulance(id, ambulance)));
     }
 
     @PutMapping("/by-plate/{vehiclePlate}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceResponse> updateAmbulanceByVehiclePlate(@PathVariable String vehiclePlate, @RequestBody Ambulances ambulance) {
         return ResponseEntity.ok(toResponse(ambulanceService.updateAmbulanceByVehiclePlate(vehiclePlate, ambulance)));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteAmbulance(@PathVariable Long id) {
         ambulanceService.deleteAmbulance(id);
         return ResponseEntity.noContent().build();
@@ -62,18 +68,21 @@ public class AmbulanceController {
 
     // ==================== STATUS MANAGEMENT ====================
     @GetMapping("/available")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> getAvailableAmbulances() {
         List<AmbulanceResponse> available = ambulanceService.getAvailableAmbulances().stream().map(this::toResponse).toList();
         return ResponseEntity.ok(available);
     }
 
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> getAmbulancesByStatus(@PathVariable String status) {
         List<AmbulanceResponse> ambulances = ambulanceService.getAmbulancesByStatus(status).stream().map(this::toResponse).toList();
         return ResponseEntity.ok(ambulances);
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceResponse> updateStatus(
         @PathVariable Long id,
         @RequestParam String status
@@ -84,6 +93,7 @@ public class AmbulanceController {
 
     // ==================== LOCATION & TRACKING ====================
     @PostMapping("/{id}/location")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceTrackingResponse> updateLocation(
         @PathVariable Long id,
         @RequestBody LocationUpdateRequest request
@@ -93,6 +103,7 @@ public class AmbulanceController {
     }
 
     @GetMapping("/{id}/tracking-history")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceTrackingResponse>> getTrackingHistory(
         @PathVariable Long id,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
@@ -103,12 +114,14 @@ public class AmbulanceController {
     }
 
     @GetMapping("/{id}/current-location")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<AmbulanceTrackingResponse> getCurrentLocation(@PathVariable Long id) {
         AmbulanceTrackingResponse current = ambulanceService.getCurrentLocation(id);
         return ResponseEntity.ok(current);
     }
 
     @GetMapping("/tracking/active")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceTrackingResponse>> getAllActiveTracking() {
         List<AmbulanceTrackingResponse> active = ambulanceService.getAllActiveTracking();
         return ResponseEntity.ok(active);
@@ -116,6 +129,7 @@ public class AmbulanceController {
 
     // ==================== MAINTENANCE ====================
     @GetMapping("/maintenance-due")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<AmbulanceResponse>> getMaintenanceDue() {
         List<AmbulanceResponse> due = ambulanceService.getMaintenanceDue().stream().map(this::toResponse).toList();
         return ResponseEntity.ok(due);
@@ -123,6 +137,7 @@ public class AmbulanceController {
 
     // ==================== STATISTICS ====================
     @GetMapping("/statistics")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceStatistics> getStatistics() {
         AmbulanceStatistics stats = ambulanceService.getStatistics();
         return ResponseEntity.ok(stats);
@@ -130,12 +145,14 @@ public class AmbulanceController {
 
     // ==================== SEARCH & FILTERS ====================
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> searchAmbulances(@RequestParam String query) {
         List<AmbulanceResponse> results = ambulanceService.searchAmbulances(query).stream().map(this::toResponse).toList();
         return ResponseEntity.ok(results);
     }
 
     @GetMapping("/type/{type}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> getAmbulancesByType(@PathVariable String type) {
         List<AmbulanceResponse> ambulances = ambulanceService.getAmbulancesByType(type).stream().map(this::toResponse).toList();
         return ResponseEntity.ok(ambulances);
@@ -143,6 +160,7 @@ public class AmbulanceController {
 
     // ==================== DISPATCH HISTORY ====================
     @GetMapping("/{id}/dispatches")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceDispatchResponse>> getDispatchHistory(@PathVariable Long id) {
         List<AmbulanceDispatchResponse> dispatches = ambulanceService.getDispatchHistory(id);
         return ResponseEntity.ok(dispatches);
