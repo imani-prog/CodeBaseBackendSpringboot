@@ -17,12 +17,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -99,7 +102,37 @@ public class HealthRecordServiceImplementation implements HealthRecordService {
 		String search = (searchTerm != null && !searchTerm.isBlank()) ? searchTerm : null;
 		Pageable pageable = PageRequest.of(page, size, Sort.by("visitDate").descending().and(Sort.by("createdAt").descending()));
 
-		return healthRecordRepository.search(patientId, types, statuses, fromDate, toDate, search, pageable)
+		List<HealthRecord.RecordType> effectiveTypes =
+				types != null ? types : Arrays.asList(HealthRecord.RecordType.values());
+		List<HealthRecord.RecordStatus> effectiveStatuses =
+				statuses != null ? statuses : Arrays.asList(HealthRecord.RecordStatus.values());
+
+		Specification<HealthRecord> spec = (root, query, cb) -> {
+			List<Predicate> predicates = new ArrayList<>();
+			if (patientId != null) {
+				predicates.add(cb.equal(root.get("patient").get("id"), patientId));
+			}
+			predicates.add(root.get("recordType").in(effectiveTypes));
+			predicates.add(root.get("status").in(effectiveStatuses));
+			if (fromDate != null) {
+				predicates.add(cb.greaterThanOrEqualTo(root.get("visitDate"), fromDate));
+			}
+			if (toDate != null) {
+				predicates.add(cb.lessThanOrEqualTo(root.get("visitDate"), toDate));
+			}
+			if (search != null) {
+				String pattern = "%" + search.toLowerCase() + "%";
+				predicates.add(cb.or(
+						cb.like(cb.lower(cb.coalesce(root.get("summary"), "")), pattern),
+						cb.like(cb.lower(cb.coalesce(root.get("notes"), "")), pattern),
+						cb.like(cb.lower(cb.coalesce(root.get("providerName"), "")), pattern),
+						cb.like(cb.lower(cb.coalesce(root.get("diagnosis"), "")), pattern)
+				));
+			}
+			return cb.and(predicates.toArray(new Predicate[0]));
+		};
+
+		return healthRecordRepository.findAll(spec, pageable)
 				.map(this::toResponse);
 	}
 
