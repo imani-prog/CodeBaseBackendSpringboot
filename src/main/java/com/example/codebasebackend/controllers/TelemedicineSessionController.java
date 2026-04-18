@@ -12,6 +12,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
@@ -27,6 +28,7 @@ public class TelemedicineSessionController {
 
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','CHW') or @patientSecurity.isOwner(#request.patientId, authentication)")
     public ResponseEntity<TelemedicineSessionResponse> createSession(
             @Valid @RequestBody TelemedicineSessionRequest request) {
         TelemedicineSessionResponse response = sessionService.createSession(request);
@@ -184,6 +186,7 @@ public class TelemedicineSessionController {
 
 
     @GetMapping("/by-patient/{patientId}")
+    @PreAuthorize("hasAnyRole('ADMIN','CHW') or @patientSecurity.isOwner(#patientId, authentication)")
     public ResponseEntity<Page<TelemedicineSessionResponse>> getSessionsByPatient(
             @PathVariable Long patientId,
             @PageableDefault(size = 10) Pageable pageable) {

@@ -43,17 +43,10 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
             .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
                 "Patient not found with ID: " + request.getPatientId()));
 
-        // Validate doctor
-        Doctor doctor = doctorRepository.findById(request.getDoctorId())
-            .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
-                "Doctor not found with ID: " + request.getDoctorId()));
+        Appointment linkedAppointment = resolveAndValidateTelemedicineAppointment(request, patient, null, null);
 
-        // Validate doctor availability
-        Integer activeSessions = sessionRepository.countActiveSessionsByDoctorId(request.getDoctorId());
-        if (activeSessions != null && activeSessions >= 3) {
-            throw new ResponseStatusException(BAD_REQUEST,
-                "Doctor is currently unavailable (max sessions reached)");
-        }
+        Doctor doctor = resolveDoctorForCreate(request, linkedAppointment);
+        validateDoctorAvailability(doctor);
 
         // Validate hospital if provided
         Hospital hospital = null;
@@ -63,7 +56,7 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                     "Hospital not found with ID: " + request.getHospitalId()));
         }
 
-        Appointment linkedAppointment = resolveAndValidateTelemedicineAppointment(request, patient, doctor, null);
+        linkedAppointment = resolveAndValidateTelemedicineAppointment(request, patient, doctor, null);
         if (hospital == null && linkedAppointment != null && linkedAppointment.getHospital() != null) {
             hospital = linkedAppointment.getHospital();
         }
@@ -120,6 +113,11 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                 "Session not found with ID: " + sessionId));
         return mapToResponse(session);
     }
+
+//    private String generateMeetingLink(String sessionId) {
+//        // Must match the "medilink-" prefix used in the hook
+//        return "https://meet.jit.si/medilink-" + sessionId;
+//    }
 
     @Override
     @Transactional(readOnly = true)
@@ -669,7 +667,8 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
     }
 
     private String generateMeetingLink(String sessionId) {
-        return "https://telemedicine.medilink.com/session/" + sessionId;
+        // Must match the "medilink-" prefix used in the hook
+        return "https://meet.jit.si/medilink-" + sessionId;
     }
 
     private Double calculateGrowthPercentage(BigDecimal previous, BigDecimal current) {
@@ -783,11 +782,11 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
             appointment = appointmentRepository.findById(request.getAppointmentId())
                     .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
                             "Appointment not found with ID: " + request.getAppointmentId()));
-        } else {
+        } else if (doctor != null) {
             appointment = appointmentRepository
                     .findFirstByPatientIdAndDoctorIdAndScheduledStartAndType(
                             request.getPatientId(),
-                            request.getDoctorId(),
+                            doctor.getId(),
                             request.getStartTime(),
                             Appointment.AppointmentType.TELEMEDICINE
                     )
@@ -806,7 +805,7 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
             throw new ResponseStatusException(BAD_REQUEST,
                     "Telemedicine appointment must have providerRole DOCTOR");
         }
-        if (!appointment.getDoctor().getId().equals(doctor.getId())) {
+        if (doctor != null && !appointment.getDoctor().getId().equals(doctor.getId())) {
             throw new ResponseStatusException(BAD_REQUEST,
                     "Doctor on telemedicine session must match appointment doctor");
         }
@@ -824,6 +823,31 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
         });
 
         return appointment;
+    }
+
+    private Doctor resolveDoctorForCreate(TelemedicineSessionRequest request, Appointment linkedAppointment) {
+        if (request.getDoctorId() != null) {
+            return doctorRepository.findById(request.getDoctorId())
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
+                            "Doctor not found with ID: " + request.getDoctorId()));
+        }
+
+        if (linkedAppointment != null && linkedAppointment.getDoctor() != null) {
+            return linkedAppointment.getDoctor();
+        }
+
+        return doctorRepository.findByActiveTrueAndStatusIn(List.of(DoctorStatus.AVAILABLE)).stream()
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST,
+                        "No available doctor for this telemedicine session. Please try again shortly."));
+    }
+
+    private void validateDoctorAvailability(Doctor doctor) {
+        Integer activeSessions = sessionRepository.countActiveSessionsByDoctorId(doctor.getId());
+        if (activeSessions != null && activeSessions >= 3) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "Doctor is currently unavailable (max sessions reached)");
+        }
     }
 
     private void syncAppointmentStatusFromSession(

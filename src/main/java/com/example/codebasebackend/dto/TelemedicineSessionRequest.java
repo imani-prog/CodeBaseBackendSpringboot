@@ -21,7 +21,6 @@ public class TelemedicineSessionRequest {
     @NotNull(message = "Patient ID is required")
     private Long patientId;
 
-    @NotNull(message = "Doctor ID is required")
     private Long doctorId;
 
     private Long hospitalId; // Optional
