@@ -19,22 +19,24 @@ import java.time.OffsetDateTime;
 @RestController
 @RequestMapping("/api/audit-logs")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AuditLogController {
 
     private final AuditService auditService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AuditLogResponse> create(@Valid @RequestBody AuditLogRequest request) {
         return ResponseEntity.ok(auditService.log(request));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','CHW')")
     public ResponseEntity<AuditLogResponse> get(@PathVariable Long id) {
         return ResponseEntity.ok(auditService.get(id));
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','CHW')")
     public ResponseEntity<Page<AuditLogResponse>> search(@RequestParam(required = false) String eventType,
                                                          @RequestParam(required = false) String entityType,
                                                          @RequestParam(required = false) String entityId,
@@ -53,6 +55,7 @@ public class AuditLogController {
     }
 
     @DeleteMapping("/purge")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Long> purge(@RequestParam
                                       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime before) {
         return ResponseEntity.ok(auditService.purgeBefore(before));

@@ -15,6 +15,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestAttributes;
@@ -25,10 +26,10 @@ import org.springframework.web.server.ResponseStatusException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -109,8 +110,14 @@ public class AuditServiceImplementation implements AuditService {
     @Override
     @Transactional(readOnly = true)
     public AuditLogResponse get(Long id) {
-        return auditRepo.findById(id).map(this::toResponse)
+        AuditLog log = auditRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Audit log not found"));
+
+        if (isChw() && !canCurrentUserAccess(log)) {
+            throw new ResponseStatusException(FORBIDDEN, "Access denied to this audit log");
+        }
+
+        return toResponse(log);
     }
 
     @Override
@@ -122,11 +129,28 @@ public class AuditServiceImplementation implements AuditService {
             throw new ResponseStatusException(BAD_REQUEST, "'from' must be before or equal to 'to'");
         }
 
+        Long scopedUserId = userId;
+        String scopedUsername = username;
+        if (isChw()) {
+            User currentUser = currentUserEntity();
+            if (currentUser != null && currentUser.getId() != null) {
+                scopedUserId = currentUser.getId();
+                scopedUsername = currentUser.getUsername();
+            } else {
+                String principal = currentUsername();
+                if (!StringUtils.hasText(principal) || "system".equalsIgnoreCase(principal)) {
+                    throw new ResponseStatusException(FORBIDDEN, "Unable to resolve authenticated CHW for audit scope");
+                }
+                scopedUserId = null;
+                scopedUsername = principal;
+            }
+        }
+
         AuditLog.EventType parsedEventType = parseOptionalEventType(eventType);
         AuditLog.EventStatus parsedStatus = parseOptionalStatus(status);
         String resolvedUsernameFromUserId = null;
-        if (userId != null) {
-            resolvedUsernameFromUserId = userRepo.findById(userId).map(User::getUsername).orElse(null);
+        if (scopedUserId != null) {
+            resolvedUsernameFromUserId = userRepo.findById(scopedUserId).map(User::getUsername).orElse(null);
         }
 
         Pageable safePageable = pageable;
@@ -142,7 +166,7 @@ public class AuditServiceImplementation implements AuditService {
                 eqEventType(parsedEventType),
                 like("entityType", entityType),
                 like("entityId", entityId),
-                userIdentityFilter(userId, username, resolvedUsernameFromUserId),
+                userIdentityFilter(scopedUserId, scopedUsername, resolvedUsernameFromUserId),
                 containsAny(searchTerm),
                 eqStatus(parsedStatus),
                 eqLong("integrationPartnerId", integrationPartnerId),
@@ -410,5 +434,53 @@ public class AuditServiceImplementation implements AuditService {
         return userRepo.findByUsernameIgnoreCase(e.getUsername())
                 .or(() -> userRepo.findByEmailIgnoreCase(e.getUsername()))
                 .orElse(null);
+    }
+
+    private boolean isChw() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_CHW"::equals);
+    }
+
+    private User currentUserEntity() {
+        String username = currentUsername();
+        if (!StringUtils.hasText(username) || "system".equalsIgnoreCase(username)) {
+            return null;
+        }
+        return userRepo.findByUsernameIgnoreCase(username)
+                .or(() -> userRepo.findByEmailIgnoreCase(username))
+                .orElse(null);
+    }
+
+    private boolean canCurrentUserAccess(AuditLog log) {
+        User currentUser = currentUserEntity();
+        String principal = currentUsername();
+
+        if (currentUser != null && currentUser.getId() != null && log.getUser() != null && log.getUser().getId() != null) {
+            if (currentUser.getId().equals(log.getUser().getId())) {
+                return true;
+            }
+        }
+
+        String logUsername = log.getUsername();
+        if (StringUtils.hasText(logUsername)) {
+            if (currentUser != null) {
+                if (StringUtils.hasText(currentUser.getUsername()) && logUsername.equalsIgnoreCase(currentUser.getUsername())) {
+                    return true;
+                }
+                if (StringUtils.hasText(currentUser.getEmail()) && logUsername.equalsIgnoreCase(currentUser.getEmail())) {
+                    return true;
+                }
+            }
+            if (StringUtils.hasText(principal) && !"system".equalsIgnoreCase(principal) && logUsername.equalsIgnoreCase(principal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
