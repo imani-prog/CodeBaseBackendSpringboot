@@ -25,7 +25,7 @@ public class PatientController {
 
     // List all patients
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "Patient", includeArgs = true)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','CHW')")
     @GetMapping
     public ResponseEntity<List<Patient>> listPatients() {
         return ResponseEntity.ok(patientService.listPatients());
@@ -41,7 +41,7 @@ public class PatientController {
 
     // Get one patient by id
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "Patient", entityIdExpression = "#id", includeArgs = true)
-    @PreAuthorize("hasRole('ADMIN') or @patientSecurity.isOwner(#id, authentication)")
+    @PreAuthorize("hasAnyRole('ADMIN','CHW') or @patientSecurity.isOwner(#id, authentication)")
     @GetMapping("/{id}")
     public ResponseEntity<Patient> getPatient(@PathVariable Long id) {
         return ResponseEntity.ok(patientService.getPatient(id));
