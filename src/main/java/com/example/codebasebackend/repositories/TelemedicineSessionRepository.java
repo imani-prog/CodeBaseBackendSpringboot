@@ -35,6 +35,7 @@ public interface TelemedicineSessionRepository extends JpaRepository<Telemedicin
 
     // Find by patient
     Page<TelemedicineSession> findByPatientId(Long patientId, Pageable pageable);
+    Page<TelemedicineSession> findByPatientIdAndUpdatedAtAfter(Long patientId, OffsetDateTime updatedSince, Pageable pageable);
     List<TelemedicineSession> findByPatientIdAndStatus(Long patientId, SessionStatus status);
 
     // Find by doctor

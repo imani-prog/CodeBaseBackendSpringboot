@@ -7,8 +7,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -85,6 +88,7 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
         session.setRecordingEnabled(request.getRecordingEnabled() != null ? request.getRecordingEnabled() : false);
         session.setReminderSent(false);
         session.setFollowUpRequired(false);
+        session.setCreatedBy(resolveCurrentUser());
 
         // Generate meeting link
         session.setMeetingLink(generateMeetingLink(sessionId));
@@ -284,7 +288,7 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
                 "Cannot cancel session in status: " + session.getStatus());
         }
 
-        session.cancelSession(null, reason);
+        session.cancelSession(resolveCurrentUser(), reason);
 
         Doctor doctor = session.getDoctor();
         if (doctor != null && doctor.getStatus() == DoctorStatus.BUSY) {
@@ -306,7 +310,7 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
             .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
                 "Session not found with ID: " + id));
 
-        session.terminateSession(null, reason);
+        session.terminateSession(resolveCurrentUser(), reason);
 
         Doctor doctor = session.getDoctor();
         if (doctor != null && doctor.getStatus() == DoctorStatus.BUSY) {
@@ -386,6 +390,16 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
     public Page<TelemedicineSessionResponse> getSessionsByPatient(Long patientId, Pageable pageable) {
         return sessionRepository.findByPatientId(patientId, pageable)
             .map(this::mapToResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<TelemedicineSessionResponse> getMySessions(OffsetDateTime updatedSince, Pageable pageable) {
+        Patient patient = resolveCurrentPatient();
+        Page<TelemedicineSession> sessions = updatedSince != null
+            ? sessionRepository.findByPatientIdAndUpdatedAtAfter(patient.getId(), updatedSince, pageable)
+            : sessionRepository.findByPatientId(patient.getId(), pageable);
+        return sessions.map(this::mapToResponse);
     }
 
     @Override
@@ -848,6 +862,30 @@ public class TelemedicineSessionServiceImplementation implements TelemedicineSes
             throw new ResponseStatusException(BAD_REQUEST,
                     "Doctor is currently unavailable (max sessions reached)");
         }
+    }
+
+    private User resolveCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return null;
+        }
+        String principal = auth.getName();
+        if (!StringUtils.hasText(principal) || "anonymousUser".equalsIgnoreCase(principal)) {
+            return null;
+        }
+        return userRepository.findByUsernameIgnoreCase(principal)
+            .or(() -> userRepository.findByEmailIgnoreCase(principal))
+            .orElse(null);
+    }
+
+    private Patient resolveCurrentPatient() {
+        User user = resolveCurrentUser();
+        if (user == null) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Authentication required");
+        }
+        return patientRepository.findByUserId(user.getId())
+            .orElseThrow(() -> new ResponseStatusException(FORBIDDEN,
+                "No patient profile found for current user"));
     }
 
     private void syncAppointmentStatusFromSession(

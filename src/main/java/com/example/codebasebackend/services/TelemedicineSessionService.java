@@ -46,6 +46,7 @@ public interface TelemedicineSessionService {
 
     // Patient and Doctor specific
     Page<TelemedicineSessionResponse> getSessionsByPatient(Long patientId, Pageable pageable);
+    Page<TelemedicineSessionResponse> getMySessions(OffsetDateTime updatedSince, Pageable pageable);
     Page<TelemedicineSessionResponse> getSessionsByDoctor(Long doctorId, Pageable pageable);
     List<TelemedicineSessionResponse> getActiveDoctorSessions(Long doctorId);
 

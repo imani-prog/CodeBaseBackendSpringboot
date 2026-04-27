@@ -195,6 +195,16 @@ public class TelemedicineSessionController {
     }
 
 
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<Page<TelemedicineSessionResponse>> getMySessions(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime updatedSince,
+            @PageableDefault(size = 10, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<TelemedicineSessionResponse> sessions = sessionService.getMySessions(updatedSince, pageable);
+        return ResponseEntity.ok(sessions);
+    }
+
+
     @GetMapping("/by-doctor/{doctorId}")
     public ResponseEntity<Page<TelemedicineSessionResponse>> getSessionsByDoctor(
             @PathVariable Long doctorId,
