@@ -38,7 +38,7 @@ public class TrainingEnrollmentController {
     }
 
     // List all modules a CHW is enrolled in
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @chwSecurity.isOwner(#chwId, authentication)")
     @GetMapping("/enrollments/chw/{chwId}")
     public ResponseEntity<List<EnrollmentResponse>> getEnrollmentsByChw(
             @PathVariable Long chwId) {
