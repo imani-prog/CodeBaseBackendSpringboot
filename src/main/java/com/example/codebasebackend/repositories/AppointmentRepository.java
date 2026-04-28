@@ -23,6 +23,19 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     Page<Appointment> findByType(Appointment.AppointmentType type, Pageable pageable);
     Page<Appointment> findByPatientId(Long patientId, Pageable pageable);
     Page<Appointment> findByHospitalId(Long hospitalId, Pageable pageable);
+    long countByStatusIn(List<Appointment.AppointmentStatus> statuses);
+    long countByStatus(Appointment.AppointmentStatus status);
+    long countByScheduledStartGreaterThanEqualAndScheduledStartLessThan(OffsetDateTime from, OffsetDateTime to);
+    long countByProviderRoleAndTypeInAndScheduledStartGreaterThanEqualAndScheduledStartLessThan(
+        Appointment.ProviderRole providerRole,
+        List<Appointment.AppointmentType> types,
+        OffsetDateTime from,
+        OffsetDateTime to
+    );
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.scheduledStart >= :from AND a.scheduledStart < :to " +
+           "AND a.checkInTime IS NOT NULL AND a.checkInTime <= a.scheduledStart")
+    long countOnTimeCheckIns(@Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to);
 
     // Combined search query
     @Query("SELECT a FROM Appointment a WHERE " +

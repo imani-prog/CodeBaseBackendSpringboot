@@ -10,5 +10,6 @@ public interface InsuranceClaimRepository extends JpaRepository<InsuranceClaim, 
     Optional<InsuranceClaim> findByClaimNumber(String claimNumber);
     List<InsuranceClaim> findByBillingId(Long billingId);
     List<InsuranceClaim> findByProviderIdAndStatus(Long providerId, InsuranceClaim.ClaimStatus status);
+    long countByStatusIn(List<InsuranceClaim.ClaimStatus> statuses);
 }
 

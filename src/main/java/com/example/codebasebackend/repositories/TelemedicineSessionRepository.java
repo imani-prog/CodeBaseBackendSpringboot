@@ -61,6 +61,7 @@ public interface TelemedicineSessionRepository extends JpaRepository<Telemedicin
         @Param("startDate") OffsetDateTime startDate,
         @Param("endDate") OffsetDateTime endDate
     );
+    long countByStartTimeGreaterThanEqualAndStartTimeLessThan(OffsetDateTime from, OffsetDateTime to);
 
     // Find by platform
     Page<TelemedicineSession> findByPlatform(PlatformType platform, Pageable pageable);

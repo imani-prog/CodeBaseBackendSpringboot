@@ -19,5 +19,6 @@ public interface CommunityHealthWorkerAssignmentRepository extends JpaRepository
     void deleteByAppointmentId(Long appointmentId);
     void deleteByHomeVisitId(Long homeVisitId);
     long countByChwIdAndStatusIn(Long chwId, Collection<CommunityHealthWorkerAssignment.Status> statuses);
+    long countByStatusIn(Collection<CommunityHealthWorkerAssignment.Status> statuses);
 }
 

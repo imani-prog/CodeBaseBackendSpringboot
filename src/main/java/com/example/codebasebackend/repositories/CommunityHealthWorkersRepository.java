@@ -48,6 +48,8 @@ public interface CommunityHealthWorkersRepository extends JpaRepository<Communit
 
     @Query("SELECT COUNT(c) FROM CommunityHealthWorkers c WHERE c.status = :status")
     Long countByStatus(@Param("status") CommunityHealthWorkers.Status status);
+
+    List<CommunityHealthWorkers> findTop5ByOrderByRatingDescSuccessRateDescMonthlyVisitsDesc();
 }
 
 

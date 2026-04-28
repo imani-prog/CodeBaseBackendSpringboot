@@ -9,5 +9,6 @@ public interface HomeVisitRepository extends JpaRepository<HomeVisit, Long> {
     List<HomeVisit> findByPatientIdOrderByScheduledAtDesc(Long patientId);
     List<HomeVisit> findByChwIdOrderByScheduledAtDesc(Long chwId);
     List<HomeVisit> findByStatusOrderByScheduledAtDesc(HomeVisit.Status status);
+    long countByScheduledAtGreaterThanEqualAndScheduledAtLessThan(java.time.OffsetDateTime from, java.time.OffsetDateTime to);
 }
 

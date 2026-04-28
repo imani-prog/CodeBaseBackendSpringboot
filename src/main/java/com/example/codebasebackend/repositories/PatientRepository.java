@@ -10,6 +10,8 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     boolean existsByUserId(Long userId);
     Optional<Patient> findByUserId(Long userId);
     Optional<Patient> findByUserUsername(String username);
+    long countByStatus(Patient.PatientStatus status);
+    long countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(java.time.OffsetDateTime from, java.time.OffsetDateTime to);
     boolean existsByNationalId(String nationalId);
     boolean existsByEmail(String email);
     Optional<Patient> findByEmail(String email);
