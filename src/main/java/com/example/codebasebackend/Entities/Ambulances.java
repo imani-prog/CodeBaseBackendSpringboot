@@ -35,7 +35,7 @@ import java.util.Set;
         indexes = {
                 @Index(name = "idx_ambulances_status", columnList = "status"),
                 @Index(name = "idx_ambulances_type", columnList = "ambulance_type"),
-                @Index(name = "idx_ambulances_driver_name", columnList = "driver_name"),
+//                @Index(name = "idx_ambulances_driver_name", columnList = "driver_name"),
                 @Index(name = "idx_ambulances_model", columnList = "model"),
                 @Index(name = "idx_ambulances_year", columnList = "year"),
                 @Index(name = "idx_ambulances_gps_enabled", columnList = "gps_enabled"),
@@ -58,11 +58,11 @@ public class Ambulances {
     @JsonAlias({"vehicleNumber"})
     private String vehiclePlate;
 
-    @Column(name = "driver_name", nullable = false)
-    private String driverName;
-
-    @Column(name = "driver_phone", nullable = false, length = 32)
-    private String driverPhone;
+//    @Column(name = "driver_name", nullable = false)
+//    private String driverName;
+//
+//    @Column(name = "driver_phone", nullable = false, length = 32)
+//    private String driverPhone;
 
     @Convert(converter = AmbulanceStatusConverter.class)
     @Column(name = "status", nullable = false, length = 24)

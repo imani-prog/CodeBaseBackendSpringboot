@@ -168,49 +168,55 @@ public class AmbulanceController {
 
     private AmbulanceResponse toResponse(Ambulances ambulance) {
         AmbulanceResponse.DriverSummary driverSummary = null;
+        String driverName = null;
+        String driverPhone = null;
+
         if (ambulance.getCurrentDriver() != null) {
             driverSummary = AmbulanceResponse.DriverSummary.builder()
-                .id(ambulance.getCurrentDriver().getId())
-                .name(ambulance.getCurrentDriver().getName())
-                .status(ambulance.getCurrentDriver().getStatus() != null ? ambulance.getCurrentDriver().getStatus().name() : null)
-                .phone(ambulance.getCurrentDriver().getPhone())
-                .build();
+                    .id(ambulance.getCurrentDriver().getId())
+                    .name(ambulance.getCurrentDriver().getName())
+                    .status(ambulance.getCurrentDriver().getStatus() != null ? ambulance.getCurrentDriver().getStatus().name() : null)
+                    .phone(ambulance.getCurrentDriver().getPhone())
+                    .build();
+
+            driverName = ambulance.getCurrentDriver().getName();
+            driverPhone = ambulance.getCurrentDriver().getPhone();
         }
 
         return AmbulanceResponse.builder()
-            .id(ambulance.getId())
-            .vehiclePlate(ambulance.getVehiclePlate())
-            .driverName(ambulance.getDriverName())
-            .driverPhone(ambulance.getDriverPhone())
-            .status(ambulance.getStatus() != null ? ambulance.getStatus().name() : null)
-            .medicName(ambulance.getMedicName())
-            .notes(ambulance.getNotes())
-            .registrationNumber(ambulance.getRegistrationNumber())
-            .model(ambulance.getModel())
-            .year(ambulance.getYear())
-            .fuelType(ambulance.getFuelType() != null ? ambulance.getFuelType().name() : null)
-            .capacity(ambulance.getCapacity())
-            .equippedForICU(ambulance.isEquippedForICU())
-            .gpsEnabled(ambulance.isGpsEnabled())
-            .insurancePolicyNumber(ambulance.getInsurancePolicyNumber())
-            .insuranceProvider(ambulance.getInsuranceProvider())
-            .type(ambulance.getType() != null ? ambulance.getType().name() : null)
-            .currentLocation(ambulance.getCurrentLocation())
-            .currentLatitude(ambulance.getCurrentLatitude())
-            .currentLongitude(ambulance.getCurrentLongitude())
-            .lastMaintenanceDate(ambulance.getLastMaintenanceDate())
-            .nextMaintenanceDate(ambulance.getNextMaintenanceDate())
-            .lastMaintenanceMileage(ambulance.getLastMaintenanceMileage())
-            .mileage(ambulance.getMileage())
-            .fuelLevel(ambulance.getFuelLevel())
-            .lastDispatchTime(ambulance.getLastDispatchTime())
-            .totalDispatches(ambulance.getTotalDispatches())
-            .averageResponseMinutes(ambulance.getAverageResponseMinutes())
-            .equipmentList(ambulance.getEquipmentList())
-            .imageUrl(ambulance.getImageUrl())
-            .createdAt(ambulance.getCreatedAt())
-            .updatedAt(ambulance.getUpdatedAt())
-            .currentDriver(driverSummary)
-            .build();
+                .id(ambulance.getId())
+                .vehiclePlate(ambulance.getVehiclePlate())
+                .driverName(driverName)
+                .driverPhone(driverPhone)
+                .status(ambulance.getStatus() != null ? ambulance.getStatus().name() : null)
+                .medicName(ambulance.getMedicName())
+                .notes(ambulance.getNotes())
+                .registrationNumber(ambulance.getRegistrationNumber())
+                .model(ambulance.getModel())
+                .year(ambulance.getYear())
+                .fuelType(ambulance.getFuelType() != null ? ambulance.getFuelType().name() : null)
+                .capacity(ambulance.getCapacity())
+                .equippedForICU(ambulance.isEquippedForICU())
+                .gpsEnabled(ambulance.isGpsEnabled())
+                .insurancePolicyNumber(ambulance.getInsurancePolicyNumber())
+                .insuranceProvider(ambulance.getInsuranceProvider())
+                .type(ambulance.getType() != null ? ambulance.getType().name() : null)
+                .currentLocation(ambulance.getCurrentLocation())
+                .currentLatitude(ambulance.getCurrentLatitude())
+                .currentLongitude(ambulance.getCurrentLongitude())
+                .lastMaintenanceDate(ambulance.getLastMaintenanceDate())
+                .nextMaintenanceDate(ambulance.getNextMaintenanceDate())
+                .lastMaintenanceMileage(ambulance.getLastMaintenanceMileage())
+                .mileage(ambulance.getMileage())
+                .fuelLevel(ambulance.getFuelLevel())
+                .lastDispatchTime(ambulance.getLastDispatchTime())
+                .totalDispatches(ambulance.getTotalDispatches())
+                .averageResponseMinutes(ambulance.getAverageResponseMinutes())
+                .equipmentList(ambulance.getEquipmentList())
+                .imageUrl(ambulance.getImageUrl())
+                .createdAt(ambulance.getCreatedAt())
+                .updatedAt(ambulance.getUpdatedAt())
+                .currentDriver(driverSummary)
+                .build();
     }
 }

@@ -68,11 +68,8 @@ public class AmbulanceServiceImplementation implements AmbulanceService {
         if (ambulance.getVehiclePlate() != null) {
             existingAmbulance.setVehiclePlate(ambulance.getVehiclePlate());
         }
-        if (ambulance.getDriverName() != null) {
-            existingAmbulance.setDriverName(ambulance.getDriverName());
-        }
-        if (ambulance.getDriverPhone() != null) {
-            existingAmbulance.setDriverPhone(ambulance.getDriverPhone());
+        if (ambulance.getCurrentDriver() != null) {
+            existingAmbulance.setCurrentDriver(ambulance.getCurrentDriver());
         }
         if (ambulance.getStatus() != null) {
             existingAmbulance.setStatus(ambulance.getStatus());
@@ -129,11 +126,8 @@ public class AmbulanceServiceImplementation implements AmbulanceService {
         if (ambulance.getVehiclePlate() != null) {
             existingAmbulance.setVehiclePlate(ambulance.getVehiclePlate());
         }
-        if (ambulance.getDriverName() != null) {
-            existingAmbulance.setDriverName(ambulance.getDriverName());
-        }
-        if (ambulance.getDriverPhone() != null) {
-            existingAmbulance.setDriverPhone(ambulance.getDriverPhone());
+        if (ambulance.getCurrentDriver() != null) {
+            existingAmbulance.setCurrentDriver(ambulance.getCurrentDriver());
         }
         if (ambulance.getStatus() != null) {
             existingAmbulance.setStatus(ambulance.getStatus());
