@@ -31,13 +31,25 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        // AuthService handles token generation — do NOT add code after this return
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody Map<String, String> body) {
+        // Delegate entirely to AuthService — jwtUtil belongs there, not in a controller
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(400).body(Map.of("message", "Refresh token is required"));
+        }
+        return ResponseEntity.ok(authService.refresh(refreshToken));
     }
 
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, String>> logout(Authentication authentication) {
         String username = authentication != null ? authentication.getName() : null;
+
         AuditLogRequest req = new AuditLogRequest();
         req.setEventType(AuditLog.EventType.LOGOUT.name());
         req.setEntityType("User");
@@ -46,6 +58,7 @@ public class AuthController {
         req.setStatus(AuditLog.EventStatus.SUCCESS.name());
         req.setDetails("{\"action\":\"logout\",\"username\":\"" + username + "\"}");
         auditService.log(req);
+
         return ResponseEntity.ok(Map.of("message", "Logout recorded"));
     }
 }

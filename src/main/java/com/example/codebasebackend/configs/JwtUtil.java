@@ -18,6 +18,28 @@ public class JwtUtil {
     @Value("${jwt.expiration:86400000}")
     private long expirationMs;
 
+    @Value("${jwt.refresh-expiration:604800000}")
+    private long refreshExpirationMs;
+
+    public String generateRefreshToken(String username) {
+        return Jwts.builder()
+                .subject(username)
+                .claim("type", "refresh")   // ← this claim is what isRefreshToken checks
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + refreshExpirationMs))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public boolean isRefreshToken(String token) {
+        try {
+            Claims claims = getClaims(token);
+            return "refresh".equals(claims.get("type", String.class));
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
@@ -56,4 +78,6 @@ public class JwtUtil {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+
+
 }

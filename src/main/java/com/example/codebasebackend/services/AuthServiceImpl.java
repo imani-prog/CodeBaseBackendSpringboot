@@ -78,6 +78,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         User saved = userRepository.save(user);
+
         if (role == UserRole.PATIENT) {
             RegisterRequest.PatientProfileRequest patientRequest = request.getPatient();
             if (patientRequest == null) {
@@ -117,9 +118,51 @@ public class AuthServiceImpl implements AuthService {
                 "{\"action\":\"register\",\"identifier\":\"" + saved.getUsername() + "\",\"role\":\"" + saved.getRole().name() + "\"}"
         );
 
-        String token = jwtUtil.generateToken(saved.getUsername(), saved.getRole().name());
-        return new AuthResponse(token, saved.getUsername(), saved.getRole().name(), saved.getId());
+        // ✅ derive roleName from the saved user — use saved, not user, to get the DB-persisted value
+        String roleName     = saved.getRole().name();
+        String accessToken  = jwtUtil.generateToken(saved.getUsername(), roleName);
+        String refreshToken = jwtUtil.generateRefreshToken(saved.getUsername());
+
+        return new AuthResponse(accessToken, refreshToken, saved.getUsername(), roleName, saved.getId());
     }
+
+    @Override
+    public AuthResponse refresh(String refreshToken) {
+        if (!jwtUtil.isTokenValid(refreshToken) || !jwtUtil.isRefreshToken(refreshToken)) {
+            throw new RuntimeException("Invalid or expired refresh token");
+        }
+        String username   = jwtUtil.extractUsername(refreshToken);
+        User   user       = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String roleName   = user.getRole() != null ? user.getRole().name() : UserRole.PATIENT.name();
+
+        return new AuthResponse(
+                jwtUtil.generateToken(username, roleName),
+                jwtUtil.generateRefreshToken(username),
+                username,
+                roleName,
+                user.getId()
+        );
+    }
+
+//    @Override
+//    public AuthResponse refresh(String refreshToken) {
+//
+//        if (!jwtUtil.isTokenValid(refreshToken) || !jwtUtil.isRefreshToken(refreshToken)) {
+//            throw new RuntimeException("Invalid or expired refresh token");
+//
+//        }
+//
+//        String username = jwtUtil.extractUsername(refreshToken);
+//
+//        User user = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+//
+//        String newAccessToken  = jwtUtil.generateToken(username, user.getRole().name());
+//        String newRefreshToken = jwtUtil.generateRefreshToken(username); // rotate
+//
+//        return new AuthResponse(newAccessToken, newRefreshToken);
+//    }
 
     private Patient buildPatient(User user, RegisterRequest.PatientProfileRequest request) {
         return Patient.builder()
@@ -249,8 +292,10 @@ public class AuthServiceImpl implements AuthService {
                 "{\"action\":\"login\",\"identifier\":\"" + user.getUsername() + "\"}"
         );
 
-        String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
-        return new AuthResponse(token, user.getUsername(), user.getRole().name(), user.getId());
+        String accessToken  = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getUsername());
+
+        return new AuthResponse(accessToken, refreshToken, user.getUsername(), user.getRole().name(), user.getId());
     }
 
     private void writeAuthAudit(AuditLog.EventType eventType,

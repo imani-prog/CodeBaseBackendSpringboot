@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
+@AllArgsConstructor          // ← Lombok generates the ONE constructor with all 5 fields
 public class AuthResponse {
-    private String token;
+    private String accessToken;
+    private String refreshToken;
     private String username;
     private String role;
-    private Long id;
+    private Long   userId;
+
 }
