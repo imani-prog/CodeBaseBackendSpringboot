@@ -82,31 +82,17 @@ public class AuthServiceImpl implements AuthService {
         if (role == UserRole.PATIENT) {
             RegisterRequest.PatientProfileRequest patientRequest = request.getPatient();
             if (patientRequest == null) {
-                writeAuthAudit(
-                        AuditLog.EventType.CREATE,
-                        request.getUsername(),
-                        saved.getId(),
-                        AuditLog.EventStatus.FAILURE,
-                        "Patient details are required for PATIENT registration",
-                        "{\"action\":\"register\",\"identifier\":\"" + request.getUsername() + "\",\"role\":\"PATIENT\"}"
-                );
-                throw new IllegalArgumentException("Patient details are required for PATIENT registration");
+                patientRepository.save(buildPatientFromUser(saved));
+            } else {
+                patientRepository.save(buildPatient(saved, patientRequest));
             }
-            patientRepository.save(buildPatient(saved, patientRequest));
         } else if (role == UserRole.CHW) {
             RegisterRequest.ChwProfileRequest chwRequest = request.getCommunityHealthWorker();
             if (chwRequest == null) {
-                writeAuthAudit(
-                        AuditLog.EventType.CREATE,
-                        request.getUsername(),
-                        saved.getId(),
-                        AuditLog.EventStatus.FAILURE,
-                        "CHW details are required for CHW registration",
-                        "{\"action\":\"register\",\"identifier\":\"" + request.getUsername() + "\",\"role\":\"CHW\"}"
-                );
-                throw new IllegalArgumentException("CHW details are required for CHW registration");
+                communityHealthWorkersRepository.save(buildChwFromUser(saved));
+            } else {
+                communityHealthWorkersRepository.save(buildChw(saved, chwRequest));
             }
-            communityHealthWorkersRepository.save(buildChw(saved, chwRequest));
         }
 
         writeAuthAudit(
@@ -169,7 +155,7 @@ public class AuthServiceImpl implements AuthService {
                 .user(user)
                 .firstName(firstNameOrUsername(request.getFirstName(), user.getUsername()))
                 .middleName(request.getMiddleName())
-                .lastName(lastNameOrEmpty(request.getLastName()))
+                .lastName(lastNameOrUnknown(request.getLastName()))
                 .gender(request.getGender())
                 .dateOfBirth(request.getDateOfBirth())
                 .email(request.getEmail())
@@ -204,13 +190,24 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    private Patient buildPatientFromUser(User user) {
+        return Patient.builder()
+                .user(user)
+                .firstName(firstNameOrUsername(null, user.getUsername()))
+                .lastName(lastNameOrUnknown(null))
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .status(Patient.PatientStatus.ACTIVE)
+                .build();
+    }
+
     private CommunityHealthWorkers buildChw(User user, RegisterRequest.ChwProfileRequest request) {
         return CommunityHealthWorkers.builder()
                 .user(user)
                 .code(request.getCode())
                 .firstName(firstNameOrUsername(request.getFirstName(), user.getUsername()))
                 .middleName(request.getMiddleName())
-                .lastName(lastNameOrEmpty(request.getLastName()))
+                .lastName(lastNameOrUnknown(request.getLastName()))
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .addressLine1(request.getAddressLine1())
@@ -234,6 +231,17 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    private CommunityHealthWorkers buildChwFromUser(User user) {
+        return CommunityHealthWorkers.builder()
+                .user(user)
+                .firstName(firstNameOrUsername(null, user.getUsername()))
+                .lastName(lastNameOrUnknown(null))
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .status(CommunityHealthWorkers.Status.AVAILABLE)
+                .build();
+    }
+
     private Hospital findHospital(Long hospitalId) {
         if (hospitalId == null) {
             return null;
@@ -247,6 +255,13 @@ public class AuthServiceImpl implements AuthService {
             return username;
         }
         return firstName;
+    }
+
+    private String lastNameOrUnknown(String lastName) {
+        if (lastName == null || lastName.isBlank()) {
+            return "Unknown";
+        }
+        return lastName;
     }
 
     private String lastNameOrEmpty(String lastName) {
