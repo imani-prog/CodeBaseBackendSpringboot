@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medilink API</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 640px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #16a34a20;
+      border: 1px solid #16a34a;
+      color: #4ade80;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.3rem 0.9rem;
+      border-radius: 9999px;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: #4ade80;
+      border-radius: 50%;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.75rem;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 1rem;
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+    }
+
+    .endpoints {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: left;
+      margin-bottom: 2rem;
+    }
+
+    .endpoints h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #1e293b;
+      font-size: 0.9rem;
+    }
+
+    .endpoint:last-child { border-bottom: none; }
+
+    .method {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      min-width: 48px;
+      text-align: center;
+    }
+
+    .post { background: #15803d20; color: #4ade80; border: 1px solid #15803d; }
+    .get  { background: #1d4ed820; color: #60a5fa; border: 1px solid #1d4ed8; }
+
+    .path { color: #cbd5e1; font-family: 'Courier New', monospace; }
+    .desc { color: #64748b; font-size: 0.8rem; margin-left: auto; }
+
+    .footer {
+      color: #475569;
+      font-size: 0.8rem;
+    }
+
+    .footer span {
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">
+      <div class="dot"></div>
+      API Online
+    </div>
+
+    <h1>Medilink API</h1>
+    <p class="subtitle">
+      Healthcare management backend service.<br />
+      All endpoints require JWT authentication except auth routes.
+    </p>
+
+    <div class="endpoints">
+      <h2>Available Endpoints</h2>
+
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path">/api/auth/register</span>
+        <span class="desc">Register user</span>
+      </div>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path">/api/auth/login</span>
+        <span class="desc">Login &amp; get token</span>
+      </div>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path">/api/auth/refresh</span>
+        <span class="desc">Refresh JWT token</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/users/**</span>
+        <span class="desc">User management</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/doctors/**</span>
+        <span class="desc">Doctor management</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/patients/**</span>
+        <span class="desc">Patient management</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/ambulances/**</span>
+        <span class="desc">Ambulance tracking</span>
+      </div>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/actuator/health</span>
+        <span class="desc">Health check</span>
+      </div>
+    </div>
+
+    <p class="footer">Powered by <span>Spring Boot 3</span> &middot; Connected to <span>NeonDB</span></p>
+  </div>
+</body>
+</html>
