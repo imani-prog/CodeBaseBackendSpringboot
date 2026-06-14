@@ -1,6 +1,7 @@
 package com.example.codebasebackend.services;
 
 import com.example.codebasebackend.Entities.Patient;
+import com.example.codebasebackend.dto.PatientResponse;
 import com.example.codebasebackend.repositories.HospitalRepository;
 import com.example.codebasebackend.repositories.PatientRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -33,7 +35,7 @@ public class PatientServiceImplementation implements PatientService {
     }
 
     @Override
-    public Patient savePatient(Patient patient) {
+    public PatientResponse savePatient(Patient patient) {
         if (patient == null) throw new ResponseStatusException(BAD_REQUEST, "patient payload required");
         // Ensure we're creating, not updating by ID injection
         patient.setId(null);
@@ -59,24 +61,30 @@ public class PatientServiceImplementation implements PatientService {
         }
 
         // Bean validation on controller handles @Valid constraints; prePersist sets defaults.
-        return patientRepo.save(patient);
+        return PatientResponse.from(patientRepo.save(patient));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Patient> listPatients() {
-        return patientRepo.findAll();
+    public List<PatientResponse> listPatients() {
+        return patientRepo.findAll()
+                .stream()
+                .map(PatientResponse::from)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Patient getPatient(Long id) {
+    public PatientResponse getPatient(Long id) {
         if (id == null) throw new ResponseStatusException(BAD_REQUEST, "id required");
-        return patientRepo.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Patient not found"));
+        return PatientResponse.from(
+                patientRepo.findById(id)
+                        .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Patient not found"))
+        );
     }
 
     @Override
-    public Patient updatePatient(Long id, Patient patch) {
+    public PatientResponse updatePatient(Long id, Patient patch) {
         if (id == null) throw new ResponseStatusException(BAD_REQUEST, "id required");
         if (patch == null) throw new ResponseStatusException(BAD_REQUEST, "patient payload required");
         var existing = patientRepo.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Patient not found"));
@@ -139,7 +147,7 @@ public class PatientServiceImplementation implements PatientService {
             existing.setHospital(hospitalRepo.getReferenceById(hospitalId));
         }
 
-        return patientRepo.save(existing);
+        return PatientResponse.from(patientRepo.save(existing));
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.example.codebasebackend.Entities.Patient;
 import com.example.codebasebackend.configs.Auditable;
 import com.example.codebasebackend.Entities.AuditLog;
 import com.example.codebasebackend.dto.LocationUpdateRequest;
+import com.example.codebasebackend.dto.PatientResponse;
 import com.example.codebasebackend.repositories.PatientRepository;
 import com.example.codebasebackend.services.PatientService;
 import jakarta.validation.Valid;
@@ -27,13 +28,13 @@ public class PatientController {
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "Patient", includeArgs = true)
     @PreAuthorize("hasAnyRole('ADMIN','CHW')")
     @GetMapping
-    public ResponseEntity<List<Patient>> listPatients() {
+    public ResponseEntity<List<PatientResponse>> listPatients() {
         return ResponseEntity.ok(patientService.listPatients());
     }
 
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "Patient")
     @GetMapping("/me")
-    public ResponseEntity<Patient> getMyPatientProfile(Authentication authentication) {
+    public ResponseEntity<PatientResponse> getMyPatientProfile(Authentication authentication) {
         Patient patient = patientRepository.findByUserUsername(authentication.getName())
                 .orElseThrow(() -> new IllegalArgumentException("Patient profile not found"));
         return ResponseEntity.ok(patientService.getPatient(patient.getId()));
@@ -43,7 +44,7 @@ public class PatientController {
     @Auditable(eventType = AuditLog.EventType.READ, entityType = "Patient", entityIdExpression = "#id", includeArgs = true)
     @PreAuthorize("hasAnyRole('ADMIN','CHW') or @patientSecurity.isOwner(#id, authentication)")
     @GetMapping("/{id}")
-    public ResponseEntity<Patient> getPatient(@PathVariable Long id) {
+    public ResponseEntity<PatientResponse> getPatient(@PathVariable Long id) {
         return ResponseEntity.ok(patientService.getPatient(id));
     }
 
@@ -59,18 +60,16 @@ public class PatientController {
     @Auditable(eventType = AuditLog.EventType.CREATE, entityType = "Patient", entityIdExpression = "#result.body.id", includeArgs = true, includeResult = true)
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<Patient> createPatient(@Valid @RequestBody Patient patient) {
-        Patient savedPatient = patientService.savePatient(patient);
-        return ResponseEntity.ok(savedPatient);
+    public ResponseEntity<PatientResponse> createPatient(@Valid @RequestBody Patient patient) {
+        return ResponseEntity.ok(patientService.savePatient(patient));
     }
 
     // Full update (PUT)
     @Auditable(eventType = AuditLog.EventType.UPDATE, entityType = "Patient", entityIdExpression = "#id", includeArgs = true, includeResult = true)
     @PreAuthorize("hasRole('ADMIN') or @patientSecurity.isOwner(#id, authentication)")
     @PutMapping("/{id}")
-    public ResponseEntity<Patient> updatePatient(@PathVariable Long id, @Valid @RequestBody Patient patient) {
-        Patient updated = patientService.updatePatient(id, patient);
-        return ResponseEntity.ok(updated);
+    public ResponseEntity<PatientResponse> updatePatient(@PathVariable Long id, @Valid @RequestBody Patient patient) {
+        return ResponseEntity.ok(patientService.updatePatient(id, patient));
     }
 
     // Delete
