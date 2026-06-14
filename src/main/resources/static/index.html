@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Medilink API</title>
+  <title>MediLink API</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -134,51 +134,6 @@
       Healthcare management backend service.<br />
       All endpoints require JWT authentication except auth routes.
     </p>
-
-    <div class="endpoints">
-      <h2>Available Endpoints</h2>
-
-      <div class="endpoint">
-        <span class="method post">POST</span>
-        <span class="path">/api/auth/register</span>
-        <span class="desc">Register user</span>
-      </div>
-      <div class="endpoint">
-        <span class="method post">POST</span>
-        <span class="path">/api/auth/login</span>
-        <span class="desc">Login &amp; get token</span>
-      </div>
-      <div class="endpoint">
-        <span class="method post">POST</span>
-        <span class="path">/api/auth/refresh</span>
-        <span class="desc">Refresh JWT token</span>
-      </div>
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <span class="path">/api/users/**</span>
-        <span class="desc">User management</span>
-      </div>
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <span class="path">/api/doctors/**</span>
-        <span class="desc">Doctor management</span>
-      </div>
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <span class="path">/api/patients/**</span>
-        <span class="desc">Patient management</span>
-      </div>
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <span class="path">/api/ambulances/**</span>
-        <span class="desc">Ambulance tracking</span>
-      </div>
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <span class="path">/actuator/health</span>
-        <span class="desc">Health check</span>
-      </div>
-    </div>
 
     <p class="footer">Powered by <span>Spring Boot 3</span> &middot; Connected to <span>NeonDB</span></p>
   </div>
