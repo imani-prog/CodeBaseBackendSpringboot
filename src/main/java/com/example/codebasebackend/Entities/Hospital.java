@@ -1,5 +1,6 @@
 package com.example.codebasebackend.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
@@ -149,6 +150,7 @@ public class Hospital {
     private String notes;
 
     // Relationships
+    @JsonIgnore
     @Builder.Default
     @OneToMany(mappedBy = "hospital", fetch = FetchType.LAZY)
     private Set<Patient> patients = new HashSet<>();
