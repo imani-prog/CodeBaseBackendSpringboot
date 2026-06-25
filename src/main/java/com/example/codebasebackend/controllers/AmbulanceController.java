@@ -26,37 +26,37 @@ public class AmbulanceController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceResponse> addAmbulance(@RequestBody Ambulances ambulance) {
-        return ResponseEntity.ok(toResponse(ambulanceService.addAmbulance(ambulance)));
+        return ResponseEntity.ok(ambulanceService.addAmbulance(ambulance));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> getAllAmbulances() {
-        return ResponseEntity.ok(ambulanceService.getAllAmbulances().stream().map(this::toResponse).toList());
+        return ResponseEntity.ok(ambulanceService.getAllAmbulances());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<AmbulanceResponse> getAmbulanceById(@PathVariable Long id) {
-        return ResponseEntity.ok(toResponse(ambulanceService.getAmbulanceById(id)));
+        return ResponseEntity.ok(ambulanceService.getAmbulanceById(id));
     }
 
     @GetMapping("/by-plate/{vehiclePlate}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<AmbulanceResponse> getAmbulanceByVehiclePlate(@PathVariable String vehiclePlate) {
-        return ResponseEntity.ok(toResponse(ambulanceService.getAmbulanceByVehiclePlate(vehiclePlate)));
+        return ResponseEntity.ok(ambulanceService.getAmbulanceByVehiclePlate(vehiclePlate));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceResponse> updateAmbulance(@PathVariable Long id, @RequestBody Ambulances ambulance) {
-        return ResponseEntity.ok(toResponse(ambulanceService.updateAmbulance(id, ambulance)));
+        return ResponseEntity.ok(ambulanceService.updateAmbulance(id, ambulance));
     }
 
     @PutMapping("/by-plate/{vehiclePlate}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceResponse> updateAmbulanceByVehiclePlate(@PathVariable String vehiclePlate, @RequestBody Ambulances ambulance) {
-        return ResponseEntity.ok(toResponse(ambulanceService.updateAmbulanceByVehiclePlate(vehiclePlate, ambulance)));
+        return ResponseEntity.ok(ambulanceService.updateAmbulanceByVehiclePlate(vehiclePlate, ambulance));
     }
 
     @DeleteMapping("/{id}")
@@ -70,15 +70,13 @@ public class AmbulanceController {
     @GetMapping("/available")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> getAvailableAmbulances() {
-        List<AmbulanceResponse> available = ambulanceService.getAvailableAmbulances().stream().map(this::toResponse).toList();
-        return ResponseEntity.ok(available);
+        return ResponseEntity.ok(ambulanceService.getAvailableAmbulances());
     }
 
     @GetMapping("/status/{status}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> getAmbulancesByStatus(@PathVariable String status) {
-        List<AmbulanceResponse> ambulances = ambulanceService.getAmbulancesByStatus(status).stream().map(this::toResponse).toList();
-        return ResponseEntity.ok(ambulances);
+        return ResponseEntity.ok(ambulanceService.getAmbulancesByStatus(status));
     }
 
     @PatchMapping("/{id}/status")
@@ -87,8 +85,7 @@ public class AmbulanceController {
         @PathVariable Long id,
         @RequestParam String status
     ) {
-        AmbulanceResponse updated = toResponse(ambulanceService.updateStatus(id, status));
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(ambulanceService.updateStatus(id, status));
     }
 
     // ==================== LOCATION & TRACKING ====================
@@ -98,8 +95,7 @@ public class AmbulanceController {
         @PathVariable Long id,
         @RequestBody LocationUpdateRequest request
     ) {
-        AmbulanceTrackingResponse tracking = ambulanceService.updateLocation(id, request);
-        return ResponseEntity.ok(tracking);
+        return ResponseEntity.ok(ambulanceService.updateLocation(id, request));
     }
 
     @GetMapping("/{id}/tracking-history")
@@ -109,114 +105,52 @@ public class AmbulanceController {
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to
     ) {
-        List<AmbulanceTrackingResponse> history = ambulanceService.getTrackingHistory(id, from, to);
-        return ResponseEntity.ok(history);
+        return ResponseEntity.ok(ambulanceService.getTrackingHistory(id, from, to));
     }
 
     @GetMapping("/{id}/current-location")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<AmbulanceTrackingResponse> getCurrentLocation(@PathVariable Long id) {
-        AmbulanceTrackingResponse current = ambulanceService.getCurrentLocation(id);
-        return ResponseEntity.ok(current);
+        return ResponseEntity.ok(ambulanceService.getCurrentLocation(id));
     }
 
     @GetMapping("/tracking/active")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceTrackingResponse>> getAllActiveTracking() {
-        List<AmbulanceTrackingResponse> active = ambulanceService.getAllActiveTracking();
-        return ResponseEntity.ok(active);
+        return ResponseEntity.ok(ambulanceService.getAllActiveTracking());
     }
 
     // ==================== MAINTENANCE ====================
     @GetMapping("/maintenance-due")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<AmbulanceResponse>> getMaintenanceDue() {
-        List<AmbulanceResponse> due = ambulanceService.getMaintenanceDue().stream().map(this::toResponse).toList();
-        return ResponseEntity.ok(due);
+        return ResponseEntity.ok(ambulanceService.getMaintenanceDue());
     }
 
     // ==================== STATISTICS ====================
     @GetMapping("/statistics")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AmbulanceStatistics> getStatistics() {
-        AmbulanceStatistics stats = ambulanceService.getStatistics();
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(ambulanceService.getStatistics());
     }
 
     // ==================== SEARCH & FILTERS ====================
     @GetMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> searchAmbulances(@RequestParam String query) {
-        List<AmbulanceResponse> results = ambulanceService.searchAmbulances(query).stream().map(this::toResponse).toList();
-        return ResponseEntity.ok(results);
+        return ResponseEntity.ok(ambulanceService.searchAmbulances(query));
     }
 
     @GetMapping("/type/{type}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceResponse>> getAmbulancesByType(@PathVariable String type) {
-        List<AmbulanceResponse> ambulances = ambulanceService.getAmbulancesByType(type).stream().map(this::toResponse).toList();
-        return ResponseEntity.ok(ambulances);
+        return ResponseEntity.ok(ambulanceService.getAmbulancesByType(type));
     }
 
     // ==================== DISPATCH HISTORY ====================
     @GetMapping("/{id}/dispatches")
     @PreAuthorize("hasAnyRole('ADMIN', 'PATIENT')")
     public ResponseEntity<List<AmbulanceDispatchResponse>> getDispatchHistory(@PathVariable Long id) {
-        List<AmbulanceDispatchResponse> dispatches = ambulanceService.getDispatchHistory(id);
-        return ResponseEntity.ok(dispatches);
-    }
-
-    private AmbulanceResponse toResponse(Ambulances ambulance) {
-        AmbulanceResponse.DriverSummary driverSummary = null;
-        String driverName = null;
-        String driverPhone = null;
-
-        if (ambulance.getCurrentDriver() != null) {
-            driverSummary = AmbulanceResponse.DriverSummary.builder()
-                    .id(ambulance.getCurrentDriver().getId())
-                    .name(ambulance.getCurrentDriver().getName())
-                    .status(ambulance.getCurrentDriver().getStatus() != null ? ambulance.getCurrentDriver().getStatus().name() : null)
-                    .phone(ambulance.getCurrentDriver().getPhone())
-                    .build();
-
-            driverName = ambulance.getCurrentDriver().getName();
-            driverPhone = ambulance.getCurrentDriver().getPhone();
-        }
-
-        return AmbulanceResponse.builder()
-                .id(ambulance.getId())
-                .vehiclePlate(ambulance.getVehiclePlate())
-                .driverName(driverName)
-                .driverPhone(driverPhone)
-                .status(ambulance.getStatus() != null ? ambulance.getStatus().name() : null)
-                .medicName(ambulance.getMedicName())
-                .notes(ambulance.getNotes())
-                .registrationNumber(ambulance.getRegistrationNumber())
-                .model(ambulance.getModel())
-                .year(ambulance.getYear())
-                .fuelType(ambulance.getFuelType() != null ? ambulance.getFuelType().name() : null)
-                .capacity(ambulance.getCapacity())
-                .equippedForICU(ambulance.isEquippedForICU())
-                .gpsEnabled(ambulance.isGpsEnabled())
-                .insurancePolicyNumber(ambulance.getInsurancePolicyNumber())
-                .insuranceProvider(ambulance.getInsuranceProvider())
-                .type(ambulance.getType() != null ? ambulance.getType().name() : null)
-                .currentLocation(ambulance.getCurrentLocation())
-                .currentLatitude(ambulance.getCurrentLatitude())
-                .currentLongitude(ambulance.getCurrentLongitude())
-                .lastMaintenanceDate(ambulance.getLastMaintenanceDate())
-                .nextMaintenanceDate(ambulance.getNextMaintenanceDate())
-                .lastMaintenanceMileage(ambulance.getLastMaintenanceMileage())
-                .mileage(ambulance.getMileage())
-                .fuelLevel(ambulance.getFuelLevel())
-                .lastDispatchTime(ambulance.getLastDispatchTime())
-                .totalDispatches(ambulance.getTotalDispatches())
-                .averageResponseMinutes(ambulance.getAverageResponseMinutes())
-                .equipmentList(ambulance.getEquipmentList())
-                .imageUrl(ambulance.getImageUrl())
-                .createdAt(ambulance.getCreatedAt())
-                .updatedAt(ambulance.getUpdatedAt())
-                .currentDriver(driverSummary)
-                .build();
+        return ResponseEntity.ok(ambulanceService.getDispatchHistory(id));
     }
 }

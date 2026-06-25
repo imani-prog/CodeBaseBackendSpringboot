@@ -4,6 +4,7 @@ import com.example.codebasebackend.Entities.Ambulances;
 import com.example.codebasebackend.dto.AssistanceRequest;
 import com.example.codebasebackend.dto.request.LocationUpdateRequest;
 import com.example.codebasebackend.dto.response.AmbulanceDispatchResponse;
+import com.example.codebasebackend.dto.response.AmbulanceResponse;
 import com.example.codebasebackend.dto.response.AmbulanceStatistics;
 import com.example.codebasebackend.dto.response.AmbulanceTrackingResponse;
 
@@ -11,17 +12,17 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 public interface AmbulanceService {
-    Ambulances addAmbulance(Ambulances ambulance);
-
-    List<Ambulances> getAllAmbulances();
-
-    Ambulances getAmbulanceById(Long id);
-
-    Ambulances getAmbulanceByVehiclePlate(String vehiclePlate);
-
-    Ambulances updateAmbulance(Long id, Ambulances ambulance);
-
-    Ambulances updateAmbulanceByVehiclePlate(String vehiclePlate, Ambulances ambulance);
+//    Ambulances addAmbulance(Ambulances ambulance);
+//
+//    List<Ambulances> getAllAmbulances();
+//
+//    Ambulances getAmbulanceById(Long id);
+//
+//    Ambulances getAmbulanceByVehiclePlate(String vehiclePlate);
+//
+//    Ambulances updateAmbulance(Long id, Ambulances ambulance);
+//
+//    Ambulances updateAmbulanceByVehiclePlate(String vehiclePlate, Ambulances ambulance);
 
     void deleteAmbulance(Long id);
 
@@ -39,9 +40,9 @@ public interface AmbulanceService {
 
     // ==================== NEW METHODS ====================
     // Status management
-    List<Ambulances> getAvailableAmbulances();
-    List<Ambulances> getAmbulancesByStatus(String status);
-    Ambulances updateStatus(Long id, String status);
+//    List<Ambulances> getAvailableAmbulances();
+//    List<Ambulances> getAmbulancesByStatus(String status);
+//    Ambulances updateStatus(Long id, String status);
 
     // Location & tracking
     AmbulanceTrackingResponse updateLocation(Long id, LocationUpdateRequest request);
@@ -50,15 +51,28 @@ public interface AmbulanceService {
     List<AmbulanceTrackingResponse> getAllActiveTracking();
 
     // Maintenance
-    List<Ambulances> getMaintenanceDue();
+//    List<Ambulances> getMaintenanceDue();
 
     // Statistics
     AmbulanceStatistics getStatistics();
 
     // Search
-    List<Ambulances> searchAmbulances(String query);
-    List<Ambulances> getAmbulancesByType(String type);
+//    List<Ambulances> searchAmbulances(String query);
+//    List<Ambulances> getAmbulancesByType(String type);
 
     // Dispatch history
     List<AmbulanceDispatchResponse> getDispatchHistory(Long id);
+
+    AmbulanceResponse addAmbulance(Ambulances ambulance);
+    List<AmbulanceResponse> getAllAmbulances();
+    AmbulanceResponse getAmbulanceById(Long id);
+    AmbulanceResponse getAmbulanceByVehiclePlate(String vehiclePlate);
+    AmbulanceResponse updateAmbulance(Long id, Ambulances ambulance);
+    AmbulanceResponse updateAmbulanceByVehiclePlate(String vehiclePlate, Ambulances ambulance);
+    AmbulanceResponse updateStatus(Long id, String status);
+    List<AmbulanceResponse> getAvailableAmbulances();
+    List<AmbulanceResponse> getAmbulancesByStatus(String status);
+    List<AmbulanceResponse> getMaintenanceDue();
+    List<AmbulanceResponse> searchAmbulances(String query);
+    List<AmbulanceResponse> getAmbulancesByType(String type);
 }
