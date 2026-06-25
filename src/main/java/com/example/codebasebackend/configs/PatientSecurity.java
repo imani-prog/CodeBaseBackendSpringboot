@@ -1,6 +1,5 @@
 package com.example.codebasebackend.configs;
 
-import com.example.codebasebackend.Entities.Patient;
 import com.example.codebasebackend.repositories.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -17,9 +16,8 @@ public class PatientSecurity {
             return false;
         }
 
-        return patientRepository.findById(patientId)
-                .map(Patient::getUser)
-                .map(user -> user.getUsername() != null && user.getUsername().equals(authentication.getName()))
+        return patientRepository.findByUserUsername(authentication.getName())
+                .map(patient -> patientId.equals(patient.getId()))
                 .orElse(false);
     }
 }
