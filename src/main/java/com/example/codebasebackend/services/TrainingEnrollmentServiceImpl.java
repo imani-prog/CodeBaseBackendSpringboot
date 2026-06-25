@@ -75,12 +75,14 @@ public class TrainingEnrollmentServiceImpl implements TrainingEnrollmentService 
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnrollmentResponse> getEnrollmentsByModule(Long moduleId) {
         return enrollmentRepository.findEnrollmentsByModule(moduleId)
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnrollmentResponse> getEnrollmentsByChw(Long chwId) {
         return enrollmentRepository.findByChwId(chwId)
                 .stream().map(this::toResponse).collect(Collectors.toList());

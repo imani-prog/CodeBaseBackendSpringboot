@@ -1,6 +1,5 @@
 package com.example.codebasebackend.configs;
 
-import com.example.codebasebackend.Entities.CommunityHealthWorkers;
 import com.example.codebasebackend.repositories.CommunityHealthWorkersRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -17,9 +16,8 @@ public class ChwSecurity {
             return false;
         }
 
-        return communityHealthWorkersRepository.findById(chwId)
-                .map(CommunityHealthWorkers::getUser)
-                .map(user -> user.getUsername() != null && user.getUsername().equals(authentication.getName()))
+        return communityHealthWorkersRepository.findByUserUsername(authentication.getName())
+                .map(chw -> chwId.equals(chw.getId()))
                 .orElse(false);
     }
 }
