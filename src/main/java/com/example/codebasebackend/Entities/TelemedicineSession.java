@@ -103,7 +103,7 @@ public class TelemedicineSession {
     private Integer plannedDuration; // Expected duration in minutes
 
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "session_symptoms", joinColumns = @JoinColumn(name = "session_id"))
     @Column(name = "symptom", length = 200)
     private List<String> symptoms = new ArrayList<>();

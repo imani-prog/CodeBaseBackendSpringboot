@@ -78,12 +78,12 @@ public class Doctor {
     @Column
     private Integer experience; // years of experience
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "doctor_qualifications", joinColumns = @JoinColumn(name = "doctor_id"))
     @Column(name = "qualification", length = 200)
     private List<String> qualifications = new ArrayList<>();
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "doctor_languages", joinColumns = @JoinColumn(name = "doctor_id"))
     @Column(name = "language", length = 50)
     private List<String> languages = new ArrayList<>();
