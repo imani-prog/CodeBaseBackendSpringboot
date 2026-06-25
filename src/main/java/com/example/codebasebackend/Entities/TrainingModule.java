@@ -78,7 +78,7 @@ public class TrainingModule {
     @Builder.Default
     private double rating = 0.0;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "training_module_comments", joinColumns = @JoinColumn(name = "training_module_id"))
     @Column(name = "comment", length = 1000)
     @Builder.Default
@@ -94,7 +94,7 @@ public class TrainingModule {
     @Builder.Default
     private boolean certification = false;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "training_module_modules", joinColumns = @JoinColumn(name = "training_module_id"))
     @Column(name = "module_name", length = 200)
     @Builder.Default
@@ -115,7 +115,7 @@ public class TrainingModule {
     @Column(name = "instructor_name", length = 200)
     private String instructorName;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "training_module_tags", joinColumns = @JoinColumn(name = "training_module_id"))
     @Column(name = "tag", length = 100)
     @Builder.Default
