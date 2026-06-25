@@ -58,3 +58,4 @@ volumes:
 networks:
   medilink-network:
     driver: bridge
+    name: medilink-network
